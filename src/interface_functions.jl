@@ -1,0 +1,97 @@
+"""
+    max_replicas(s::SlottedRAScheme)
+This function returns the maximum number of replicas that a given scheme can generate.
+"""
+max_replicas(::FixedRepSlottedRAScheme{N}) where {N} = N
+"""
+    power_distribution(s::SlottedRAScheme)
+
+Returns the power distribution of the scheme, to be used for generating random power values for the replicas via `rand`.
+"""
+power_distribution(s::FixedRepSlottedRAScheme) = s.power_dist
+"""
+    replica_power(s::SlottedRAScheme)
+
+Returns the strategy used for assigning power the the replicas, must be a valid value of [`ReplicaPowerStrategy`](@ref) enum type.
+"""
+replica_power_strategy(s::FixedRepSlottedRAScheme) = s.replica_power_strategy
+
+"""
+    replicas_positions(::FixedRepSlottedRAScheme{N}, nslots::Int)
+
+Returns a tuple of `N` integers representing the slot positions of the replicas
+for a specific user in a given RA frame with `nslots` slots.
+
+For schemes not generating a constant number of replicas in each frame, the
+returned Tuple will always have `N` values (with `N` being the maximum number of
+replicas in the scheme).
+The actual values of valid replica slots will be `effective_nreplicas <= N`, and
+the elements of the returned tuple will be non-zero only for the first
+`effective_nreplicas` values.
+
+See also: [`replicas_power`](@ref)
+"""
+function replicas_positions end
+# CRDSA version, creates N random independent slots between 1 and nslots
+function replicas_positions(::CRDSA{N}, nslots) where N
+	@no_escape begin
+		a = @alloc(Int, N)
+		for i in eachindex(a)
+			a[i] = 0
+			val = rand(1:nslots)
+			@views while val ∈ a[1:i-1]
+				val = rand(1:nslots)
+			end
+			a[i] = val
+		end
+		ntuple(i -> a[i], Val{N}())
+	end
+end
+# MF-CRDSA version, creates N random slots, each falling into the respective partition of `nslots` into `N` non-overlapping groups
+function replicas_positions(::MF_CRDSA{N}, nslots) where N
+	@assert mod(nslots, N) == 0 "The number of total slots must be a multiple of the number of replicas"
+	offset = nslots ÷ N
+	return ntuple(Val{N}()) do i
+		rand(1:offset) + (i-1) * offset
+	end
+end
+
+"""
+    replicas_power(::SlottedRAScheme, effective_nreplicas::Int)
+
+Returns a tuple of `N` floats representing the power for each of the replicas.
+For schemes which have a variable number of replicas, only the first
+`effective_nreplicas` values are not `NaN`.
+!!! note
+    The power returned by this function represents a value in Watts.
+
+See also: [`replicas_positions`](@ref)
+"""
+function replicas_power(s::FixedRepSlottedRAScheme{N}, effective_nreplicas::Int) where N
+    @assert effective_nreplicas === N "You can't specify a number of replicas that is different from the number of the fixed replicas scheme."
+	d = power_distribution(s)
+	n = Val{N}()
+	power_type = replica_power_strategy(s)
+	if power_type === SamePower
+		p = rand(d)
+		return ntuple(i -> i > effective_nreplicas ? NaN : p, n)
+	elseif power_type === IndependentPower
+		return ntuple(i -> i > effective_nreplicas ? NaN : rand(d), n)
+	else
+		error("Unsupported type of replica power")
+	end
+end
+
+"""
+    replicas_slots_powers(::SlottedRAScheme{N})
+
+Generate a tuple of `N` tuples `Tuple{Int, Float64}` representing 
+"""
+function replicas_slots_powers(s::SlottedRAScheme{N}, nslots) where N
+    slots = replicas_positions(s, nslots)
+    effective_nreplicas = sum(!iszero, slots)
+    powers = replicas_power(s, effective_nreplicas)
+    map(slots, powers) do slot, power
+        (;slot, power)
+    end
+end
