@@ -17,6 +17,27 @@ See also [`CRDSA`](@ref), [`MF_CRDSA`](@ref)
 abstract type FixedRepSlottedRAScheme{N} <: SlottedRAScheme{N} end
 
 """
+    struct CRDSA{N, D} <: FixedRepSlottedRAScheme{N}
+Type representing the _Contention Resolution Diversity Slotted ALOHA_ (CRDSA)
+scheme, with a number of replicas `N`.
+
+This RA scheme was introduced in [this 2007 IEEE paper](https://doi.org/10.1109/TWC.2007.348337).
+
+See also: [`MF_CRDSA`](@ref)
+"""
+struct CRDSA{N} <: FixedRepSlottedRAScheme{N} end
+
+"""
+$TYPEDEF
+Type representing the _Multi-Frequency Contention Resolution Diversity Slotted ALOHA_ (MF-CRDSA) scheme, with a number of replicas `N`.
+
+This RA scheme was introduced in [this 2017 IEEE paper](https://doi.org/10.1109/TCOMM.2017.2696952).
+
+See also: [`CRDSA`](@ref)
+"""
+struct MF_CRDSA{N,D} <: FixedRepSlottedRAScheme{N} end
+
+"""
     @enum ReplicaPowerStrategy SamePower IndependentPower
 
 Enum used to specify how the power for replicas of a given user in a specific RA frame is determined.
@@ -28,81 +49,108 @@ Enum used to specify how the power for replicas of a given user in a specific RA
 @enum ReplicaPowerStrategy SamePower IndependentPower
 
 """
-    struct CRDSA{N, D} <: FixedRepSlottedRAScheme{N}
-Type representing the _Contention Resolution Diversity Slotted ALOHA_ (CRDSA) scheme, with a number of replicas `N`.
-This RA scheme was introduced in [this 2007 IEEE paper](https://doi.org/10.1109/TWC.2007.348337).
-
-# Fields
-- `power_dist::D`: The distribution used to create random samples of the replicas power.
-- `replica_power::ReplicaPower`: Specifies how to sample the replicas power within a given RA frame for each user.
-
-# Constructors
-Apart from the standard `@kwdef` constructor with fully specified type
-parameters (`N` and `D`), the two following constructor for specifying only the
-number of replicas `N` are available:
-- `CRDSA{N}(power_dist::D, args...)`: Creates a CRDSA scheme with `N` replicas \
-and the power distribution `power_dist` and all other arguments forwarded to the \
-default constructor.
-- `CRDSA{N}(; power_dist::D, kwargs...)`: Creates a CRDSA scheme with `N` \
-replicas and the power distribution `power_dist`, forwarding all other keyword \
-arguments to the `@kwdef` default constructor.
-"""
-@kwdef struct CRDSA{N, D} <: FixedRepSlottedRAScheme{N}
-    power_dist::D
-    replica_power_strategy::ReplicaPowerStrategy = SamePower
-end
-CRDSA{N}(dist::D, args...) where {N, D} = CRDSA{N, D}(dist, args...)
-CRDSA{N}(; power_dist::D, kwargs...) where {N,D} = CRDSA{N,D}(; power_dist, kwargs...)
-
-"""
-    struct MF_CRDSA{N, D} <: FixedRepSlottedRAScheme{N}
-Type representing the _Multi-Frequency Contention Resolution Diversity Slotted ALOHA_ (MF-CRDSA) scheme, with a number of replicas `N`.
-This RA scheme was introduced in [this 2017 IEEE paper](https://doi.org/10.1109/TCOMM.2017.2696952).
-
-# Fields
-- `power_dist::D`: The distribution used to create random samples of the replicas power.
-- `replica_power::ReplicaPower`: Specifies how to sample the replicas power within a given RA frame for each user.
-
-# Constructors
-Apart from the standard `@kwdef` constructor with fully specified type
-parameters (`N` and `D`), the two following constructor for specifying only the
-number of replicas `N` are available:
-- `MF_CRDSA{N}(power_dist::D, args...)`: Creates a MF-CRDSA scheme with `N` replicas \
-and the power distribution `power_dist` and all other arguments forwarded to the \
-default constructor.
-- `MF_CRDSA{N}(; power_dist::D, kwargs...)`: Creates a MF-CRDSA scheme with `N` \
-replicas and the power distribution `power_dist`, forwarding all other keyword \
-arguments to the `@kwdef` default constructor.
-"""
-@kwdef struct MF_CRDSA{N, D} <: FixedRepSlottedRAScheme{N}
-    power_dist::D
-    replica_power_strategy::ReplicaPowerStrategy = SamePower
-end
-MF_CRDSA{N}(dist::D, args...) where {N, D} = MF_CRDSA{N, D}(dist, args...)
-MF_CRDSA{N}(; power_dist::D, kwargs...) where {N,D} = MF_CRDSA{N,D}(; power_dist, kwargs...)
-
-"""
     struct UserRealization{N, RA <: SlottedRAScheme}
 Specifies the realization of replicas slots and replicas powers for a single
 user in a single slotted RA frame. The parameter `N` specifies the maximum
 number of replicas that the scheme of type `RA` can generate.
 
 # Fields
-- `scheme::RA`: The RA scheme used for the frame. Only used at construction to generate the slots and powers.
-- `nslots::Int`: The number of slots in the frame.
-- `slots::NTuple{N, Tuple{Int, Float64}}`: The slots positions for this user in the frame. Only non-zero values are considered valid positions for replicas to send
-- `powers::NTuple{N, Float64}`: The powers of this user's packet replicas in the frame. Only non-NaN values are considered valid powers
+$TYPEDFIELDS
 
 # Constructor
-The main constructor to use should accept just the `scheme` and the number of slots in the frame `nslots`.
-It should internally generate the random realization of the slots positions and powers for the specific user in the current frame.
+The main constructor to use has the following form:
+```julia
+UserRealization(scheme::SlottedRAScheme, nslots::Int; power_dist, power_strategy::ReplicaPowerStrategy)
+```
+And internally computes the slots and power realizations for the user in the current frame.
 """
-struct UserRealization{N, RA <: SlottedRAScheme}
+struct UserRealization{N,RA<:SlottedRAScheme{N},D}
+    "The RA scheme used for the frame. Only used at construction to generate the slots and powers."
     scheme::RA
+    "The number of slots in the frame."
     nslots::Int
-    slots_powers::NTuple{N, @NamedTuple{slot::Int, power::Float64}}
+    "Distribution used to generate the random power values"
+    power_dist::D
+    "The strategy to assign power to the replicas of a given packet. Must be a valid value of [`ReplicaPowerStrategy`](@ref) enum type."
+    power_strategy::ReplicaPowerStrategy
+    "A Tuple of `N` NamedTuples (where `N` is the max number of replicas of the scheme), each containing the slot idx and power of each replica."
+    slots_powers::NTuple{N,@NamedTuple{slot::Int, power::Float64}}
 end
-function UserRealization(scheme::SlottedRAScheme, nslots::Int)
-    slots_powers = replicas_slots_powers(scheme, nslots)
-    UserRealization(scheme, nslots, slots_powers)
+function UserRealization(scheme::SlottedRAScheme, nslots::Int; power_dist, power_strategy=SamePower)
+    slots_powers = replicas_slots_powers(scheme, nslots; power_dist, power_strategy)
+    UserRealization(scheme, nslots, power_dist, power_strategy, slots_powers)
+end
+
+"""
+$TYPEDEF
+Type storing the parameters to be used for a PLR simulation.
+
+# Fields
+$TYPEDFIELDS
+"""
+@kwdef struct PLR_SimulationParameters{RA,F}
+    "The specific RA scheme"
+    scheme::RA
+    "Flag specifying whether the simulation should assume poisson or constant traffic"
+    poisson::Bool = true
+    "The coderate of the packets sent by the users"
+    coderate::Float64 = 1 / 3
+    "The modulation cardinality of the packets sent by the users"
+    M::Int = 4
+    "The number of RA frames to simulate for each Load point"
+    max_simulated_frames::Int = 10^5
+    "The number of slots in each RA frame"
+    nslots::Int
+    "The function used to compute the PLR for a given packet as a function of its equivalent Eb/N0"
+    plr_func::F = default_plr_function(coderate)
+    "The variance of the noise, assumed as N0 in the simulation"
+    noise_variance::Float64 = 1.0
+    "The maximum number of SIC iterations to perform during the decoding steps"
+    SIC_iterations::Int = 15
+    "The maximum number of frames with errors to simulate. Once a simulation reaches this number of frames with errors, the simulation will stop."
+    max_errored_frames::Int = 10^4
+end
+
+"""
+$TYPEDSIGNATURES
+Type to store the result of a PLR simulation run
+
+# Fields
+$TYPEDFIELDS
+"""
+@kwdef struct PLR_Result
+    "The number of frames simulated for this PLR result"
+    simulated_frames::Int = 0
+    "The number of frames with errors within the simulation"
+    errored_frames::Int = 0
+    "The total number of decoded packets in the simulations, ignoring replicas"
+    total_decoded::Int = 0
+    "The total number of sent packets, ignoring replicas"
+    total_sent::Int = 0
+end
+struct PLR_Simulation_Point
+    "Normalized MAC Load at which the PLR result was computed"
+    load::Float64
+    "PLR result of the simulation"
+    plr::PLR_Result
+end
+PLR_Simulation_Point(load::Float64) = PLR_Simulation_Point(load, PLR_Result())
+
+"""
+$TYPEDSIGNATURES
+Type containing the parameters and results of a PLR simulation.
+# Fields
+$TYPEDFIELDS
+"""
+struct PLR_Simulation
+    "Parameters used for the simulation"
+    params::PLR_SimulationParameters
+    "Results of the simulation"
+    results::StructArray{PLR_Simulation_Point}
+end
+function PLR_Simulation(load::AbstractVector; kwargs...)
+    params = PLR_SimulationParameters(; kwargs...)
+    # We create the results as an unwrapped structarray so it's easy to access any of the fields
+    results = StructArray(map(l -> PLR_Simulation_Point(l), load); unwrap=T -> T <: PLR_Simulation_Point)
+    PLR_Simulation(params, results)
 end

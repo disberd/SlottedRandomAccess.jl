@@ -3,18 +3,6 @@
 This function returns the maximum number of replicas that a given scheme can generate.
 """
 max_replicas(::FixedRepSlottedRAScheme{N}) where {N} = N
-"""
-    power_distribution(s::SlottedRAScheme)
-
-Returns the power distribution of the scheme, to be used for generating random power values for the replicas via `rand`.
-"""
-power_distribution(s::FixedRepSlottedRAScheme) = s.power_dist
-"""
-    replica_power(s::SlottedRAScheme)
-
-Returns the strategy used for assigning power the the replicas, must be a valid value of [`ReplicaPowerStrategy`](@ref) enum type.
-"""
-replica_power_strategy(s::FixedRepSlottedRAScheme) = s.replica_power_strategy
 
 """
     replicas_positions(::FixedRepSlottedRAScheme{N}, nslots::Int)
@@ -67,16 +55,14 @@ For schemes which have a variable number of replicas, only the first
 
 See also: [`replicas_positions`](@ref)
 """
-function replicas_power(s::FixedRepSlottedRAScheme{N}, effective_nreplicas::Int) where N
+function replicas_power(::SlottedRAScheme{N}, effective_nreplicas::Int = N; power_dist, power_strategy) where N
     @assert effective_nreplicas === N "You can't specify a number of replicas that is different from the number of the fixed replicas scheme."
-	d = power_distribution(s)
 	n = Val{N}()
-	power_type = replica_power_strategy(s)
-	if power_type === SamePower
-		p = rand(d)
+	if power_strategy === SamePower
+		p = rand(power_dist)
 		return ntuple(i -> i > effective_nreplicas ? NaN : p, n)
-	elseif power_type === IndependentPower
-		return ntuple(i -> i > effective_nreplicas ? NaN : rand(d), n)
+	elseif power_strategy === IndependentPower
+		return ntuple(i -> i > effective_nreplicas ? NaN : rand(power_dist), n)
 	else
 		error("Unsupported type of replica power")
 	end
@@ -87,10 +73,10 @@ end
 
 Generate a tuple of `N` tuples `Tuple{Int, Float64}` representing 
 """
-function replicas_slots_powers(s::SlottedRAScheme{N}, nslots) where N
+function replicas_slots_powers(s::SlottedRAScheme, nslots; power_dist, power_strategy)
     slots = replicas_positions(s, nslots)
     effective_nreplicas = sum(!iszero, slots)
-    powers = replicas_power(s, effective_nreplicas)
+    powers = replicas_power(s, effective_nreplicas; power_dist, power_strategy)
     map(slots, powers) do slot, power
         (;slot, power)
     end
