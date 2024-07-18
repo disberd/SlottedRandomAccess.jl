@@ -1,7 +1,6 @@
 module PlotlyBaseExt
 
 using PlotlyBase: Layout, scatter, Plot, attr, PlotlyBase
-using PlotlyExtensionsHelper: plotly_plot
 using SlottedRandomAccess: default_layout, SlottedRandomAccess, PLR_Simulation, compute_plr, _plot
 
 const PLOTLY_DEFAULT_LAYOUT = Layout()
@@ -59,10 +58,14 @@ function SlottedRandomAccess.default_layout(s::PLR_Simulation; kwargs...)
             ),
         ),
         legend=attr(;
+            x=0.97,
+            xanchor="right",
+            y=0.03,
             font=attr(;
                 family="Computer Modern",
-                size=16,
+                size=13,
             ),
+            borderwidth=1,
         )
     )
     override = empty_layout(; kwargs...)

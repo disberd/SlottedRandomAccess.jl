@@ -35,7 +35,7 @@ This RA scheme was introduced in [this 2017 IEEE paper](https://doi.org/10.1109/
 
 See also: [`CRDSA`](@ref)
 """
-struct MF_CRDSA{N,D} <: FixedRepSlottedRAScheme{N} end
+struct MF_CRDSA{N} <: FixedRepSlottedRAScheme{N} end
 
 """
     @enum ReplicaPowerStrategy SamePower IndependentPower

@@ -1,4 +1,5 @@
 # SlottedRandomAccess
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 This repository implements the simulations tools for computing the Packet Loss Ratio (PLR) of slotted random access schemes.
 
