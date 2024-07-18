@@ -97,6 +97,10 @@ $TYPEDFIELDS
     coderate::Float64 = 1 / 3
     "The modulation cardinality of the packets sent by the users"
     M::Int = 4
+    "Distribution used to generate the random power values"
+    power_dist
+    "The strategy to assign power to the replicas of a given packet. Must be a valid value of [`ReplicaPowerStrategy`](@ref) enum type."
+    power_strategy::ReplicaPowerStrategy = SamePower
     "The number of RA frames to simulate for each Load point"
     max_simulated_frames::Int = 10^5
     "The number of slots in each RA frame"
@@ -139,6 +143,7 @@ PLR_Simulation_Point(load::Float64) = PLR_Simulation_Point(load, PLR_Result())
 """
 $TYPEDSIGNATURES
 Type containing the parameters and results of a PLR simulation.
+
 # Fields
 $TYPEDFIELDS
 """
@@ -147,10 +152,20 @@ struct PLR_Simulation
     params::PLR_SimulationParameters
     "Results of the simulation"
     results::StructArray{PLR_Simulation_Point}
+    "The list of keyword arguments passed to the scatter call for plotting"
+    scatter_kwargs::Dict{Symbol, Any}
+    # We do this custom inner constructor to convert the scatter_kwargs to Dict{Symbol, Any}, so that you can also pass it anything that can be converted to it
+    function PLR_Simulation(params::PLR_SimulationParameters, results::StructArray{PLR_Simulation_Point}, scatter_kwargs)
+        dict = Dict{Symbol, Any}(scatter_kwargs)
+        new(params, results, dict)
+    end
 end
 function PLR_Simulation(load::AbstractVector; kwargs...)
     params = PLR_SimulationParameters(; kwargs...)
+    PLR_Simulation(load, params)
+end
+function PLR_Simulation(load::AbstractVector, params::PLR_SimulationParameters; scatter_kwargs = Dict{Symbol, Any}())
     # We create the results as an unwrapped structarray so it's easy to access any of the fields
-    results = StructArray(map(l -> PLR_Simulation_Point(l), load); unwrap=T -> T <: PLR_Simulation_Point)
-    PLR_Simulation(params, results)
+    results = StructArray(map(l -> PLR_Simulation_Point(l), load); unwrap=T -> !(T <: Real))
+    PLR_Simulation(params, results, scatter_kwargs)
 end

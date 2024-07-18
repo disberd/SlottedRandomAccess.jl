@@ -63,56 +63,73 @@ function _decoding_iterations!(slots_powers, decoded, cancelled, interference_ch
 end
 
 function compute_plr_result(params::PLR_SimulationParameters, load)
-    (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames) = params
+    (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy) = params
     coding_gain = 1 / (coderate * log2(M))
     mean_users = nslots * load * coding_gain
     errored_frames = 0
     total_decoded = 0
     total_sent = 0
+    simulated_frames = 0
     for frame in 1:max_simulated_frames
         # Compute the effective number of users for this frame
         nusers = poisson ? rand(Poisson(mean_users)) : round(Int, mean_users)
         @no_escape begin
             # Initialize the vector of users
-            users = @alloc(UserRealization{max_replicas(scheme),typeof(scheme)}, nusers)
+            users = @alloc(UserRealization{max_replicas(scheme),typeof(scheme), typeof(power_dist)}, nusers)
             # Initialize the matrix of power allocations
             power_matrix = @alloc(Float64, nusers, nslots)
             # Make sure that power_matrix has all zeros
             fill!(power_matrix, zero(eltype(power_matrix)))
             # Instantiate the users for this frame
             for u in eachindex(users)
-                users[u] = UserRealization(scheme, nslots)
+                users[u] = UserRealization(scheme, nslots; power_dist, power_strategy)
             end
             # Populate the power_matrix with the power of the users replicas
             allocate_users!(power_matrix, users)
             ndecoded = process_frame!(power_matrix, users; params)
             total_decoded += ndecoded
             total_sent += nusers
-            errored_frames += ndecoded > 0
+            errored_frames += ndecoded < nusers
         end
+        simulated_frames += 1
         # Break if we reached the max number of errored frames
         errored_frames >= max_errored_frames && break
     end
-    plr_result = PLR_Result(;
-        simulated_frames=max_simulated_frames,
-        total_decoded,
-        errored_frames,
-        total_sent
-    )
+    plr_result = PLR_Result(; simulated_frames, total_decoded, errored_frames, total_sent)
     # Compute the PLR for this load point
     return plr_result
 end
 
 # Compute the actual PLR value (between 0 and 1) from the PLR_Result structure
-function compute_plr(r::PLR_Result)
-    is_valid_result(r) || @warn "The provided PLR result does not seem to correspond to an actual simulation, as the number of simulated frames is 0"
+function compute_plr(r::PLR_Result; warn = true)
+    is_valid_result(r) || !warn || @warn(
+    #! format: off
+"The provided PLR result does not seem to correspond to an actual simulation, as the number of simulated frames is 0."
+    #! format: off
+    )
     plr = 1 - r.total_decoded / r.total_sent
     return plr
 end
 compute_plr(params::PLR_SimulationParameters, load) = compute_plr_result(params, load) |> compute_plr
-compute_plr(s::PLR_Simulation_Point) = compute_plr(s.plr)
+function compute_plr(s::PLR_Simulation_Point; warn = true)
+    (;load, plr) = s
+    is_valid_result(s) || !warn || @warn(
+    #! format: off
+"The load point $load does not seem to have been simulated yet.
+To compute the PLR, call `compute_plr!(s::PLR_Simulation)` first."
+    #! format: off
+    )
+    compute_plr(plr; warn=false)
+end
 
 function compute_plr!(s::PLR_Simulation)
     Threads.@threads for i in eachindex(s.results)
+        simpoint = s.results[i]
+        # If this point already has a valid result, we skip it
+        is_valid_result(simpoint) && continue
+        (;load) = simpoint
+        plr = compute_plr_result(s.params, load)
+        s.results.plr[i] = plr
     end
+    s
 end
