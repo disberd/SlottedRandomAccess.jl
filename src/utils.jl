@@ -36,7 +36,11 @@ end
 
 # The default set of loggers passed for the progress_channesl, including both the default one and a custom TerminalLogger to also show progress outside of the VSCode progress bar.
 progress_logger() = if isinteractive()
-    TeeLogger(current_logger(), terminal_logger())
+    # We only copy to the terminal logger the loggings from ProgresLogging.jl, which have a LogLevel of -1
+    filtered_terminal = EarlyFilteredLogger(terminal_logger()) do log
+        log.level == LogLevel(-1)
+    end
+    TeeLogger(current_logger(), filtered_terminal)
 else
     current_logger()
 end
