@@ -1,3 +1,10 @@
+Base.:+(p1::PLR_Result, p2::PLR_Result) = PLR_Result(
+    p1.simulated_frames + p2.simulated_frames,
+    p1.errored_frames + p2.errored_frames,
+    p1.total_decoded + p2.total_decoded,
+    p1.total_sent + p2.total_sent
+)
+
 """
     LogUniform_dB(min_db,max_db)
 Defines a distribution whose pdf is uniform in dB between `min_db` and `max_db`.
