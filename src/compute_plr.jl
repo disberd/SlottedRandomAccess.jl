@@ -3,18 +3,11 @@ function compute_plr_result(params::PLR_SimulationParameters, load)
     (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy) = params
     coding_gain = 1 / (coderate * log2(M))
     mean_users = nslots * load * coding_gain
-    ## These 4 variables will be used to track simualted frames/packets and errors **
-    errored_frames = 0
-    total_decoded = 0
-    total_sent = 0
-    simulated_frames = 0
+    plr = PLR_Result() # Initializ the plr result
     ## End of tracking variables
     l = ReentrantLock() # We use this to avoid race conditions in modifying the number of frames/packets
     Threads.@threads for idxs in chunks(1:max_simulated_frames; size=50)
-        inner_errored = 0
-        inner_simulated = 0
-        inner_sent = 0
-        inner_decoded = 0
+        inner_plr = PLR_Result()
         for _ in idxs
             # Compute the effective number of users for this frame
             nusers = poisson ? rand(Poisson(mean_users)) : round(Int, mean_users)
@@ -33,23 +26,20 @@ function compute_plr_result(params::PLR_SimulationParameters, load)
                 allocate_users!(power_matrix, users)
                 ndecoded = process_frame!(power_matrix, users; params)
             end
-            inner_decoded += ndecoded
-            inner_sent += nusers
-            inner_errored += ndecoded < nusers
-            inner_simulated += 1
+            inner_plr += PLR_Result(;
+                simulated_frames=1,
+                total_decoded=ndecoded,
+                errored_frames=ndecoded < nusers ? 1 : 0,
+                total_sent=nusers
+            )
         end
         lock(l) do # Lock to prevent race conditions
-            total_decoded += inner_decoded
-            total_sent += inner_sent
-            errored_frames += inner_errored
-            simulated_frames += inner_simulated
+            plr += inner_plr
         end
         # Break if we reached the max number of errored frames
-        errored_frames >= max_errored_frames && break
+        plr.errored_frames >= max_errored_frames && break
     end
-    plr_result = PLR_Result(; simulated_frames, total_decoded, errored_frames, total_sent)
-    # Compute the PLR for this load point
-    return plr_result
+    return plr
 end
 
 """
