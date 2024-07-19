@@ -27,7 +27,7 @@ function process_frame!(power_matrix, users; params::PLR_SimulationParameters)
     end
 end
 
-# Block actualy performing the decoding iterations
+# Block actualy performing the decoding iterations for a single frame
 function _decoding_iterations!(slots_powers, decoded, cancelled, interference_changed; params, users)
     (; coderate, M, plr_func, SIC_iterations) = params
     coding_gain = 1 / (coderate * log2(M))
