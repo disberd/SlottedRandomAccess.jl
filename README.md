@@ -28,7 +28,9 @@ line_colors = [ # Use to match the line colors
 ebno_max_vec = [6,9,12]
 # Define the load vector
 load = .1:.1:2
-# Create the CRDSA curves
+
+
+### Create the CRDSA simulations
 crdsa_sims = map(1:3) do idx
   ebno_max = ebno_max_vec[idx]
   line_color = line_colors[idx]
@@ -43,6 +45,7 @@ crdsa_sims = map(1:3) do idx
     scheme,
     nslots = 100,
   )
+  # Add information to customize the plot to the simulation object
   add_scatter_kwargs!(sim; 
     name = "N<sub>rep</sub> = 3, [E<sub>b</sub>N<sub>0</sub>]<sub>max</sub> = $(ebno_max)dB",
     line_color,
@@ -51,7 +54,9 @@ crdsa_sims = map(1:3) do idx
   )
   simulate!(sim) # Compute the packet loss ratio
 end
-# Create the MF-CRDSA curves
+
+
+### Create the MF-CRDSA curves
 mf_crdsa_sims = map(1:3) do idx
   ebno_max = ebno_max_vec[idx]
   line_color = line_colors[idx]
@@ -75,6 +80,8 @@ mf_crdsa_sims = map(1:3) do idx
   )
   simulate!(sim) # Compute the packet loss ratio
 end
+
+
 # Plot the MF-CRDSA and CRDSA curves together
 Plot(vcat(crdsa_sims, mf_crdsa_sims))
 ```
