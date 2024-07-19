@@ -21,6 +21,20 @@ function allocate_users!(power_matrix, users)
 	return power_matrix
 end
 
+const TERMINAL_LOGGER = Ref{TerminalLogger}()
+function terminal_logger()
+    isassigned(TERMINAL_LOGGER) && return TERMINAL_LOGGER[]
+    TERMINAL_LOGGER[] = TerminalLogger()
+end
+
+# The default set of loggers passed for the progress_channesl, including both the default one and a custom TerminalLogger to also show progress outside of the VSCode progress bar.
+progress_logger() = if isinteractive()
+    TeeLogger(current_logger(), terminal_logger())
+else
+    current_logger()
+end
+
+
 # Check if a result is valid or is just an initialized but not ran simulation
 is_valid_result(r::PLR_Result) = r.simulated_frames > 0
 is_valid_result(s::PLR_Simulation_Point) = is_valid_result(s.plr)

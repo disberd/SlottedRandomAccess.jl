@@ -62,36 +62,52 @@ function _decoding_iterations!(slots_powers, decoded, cancelled, interference_ch
     return nothing
 end
 
+# This computes the PLR result for a given load using multiple threads
 function compute_plr_result(params::PLR_SimulationParameters, load)
     (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy) = params
     coding_gain = 1 / (coderate * log2(M))
     mean_users = nslots * load * coding_gain
+    ## These 4 variables will be used to track simualted frames/packets and errors **
     errored_frames = 0
     total_decoded = 0
     total_sent = 0
     simulated_frames = 0
-    for frame in 1:max_simulated_frames
-        # Compute the effective number of users for this frame
-        nusers = poisson ? rand(Poisson(mean_users)) : round(Int, mean_users)
-        @no_escape begin
-            # Initialize the vector of users
-            users = @alloc(UserRealization{max_replicas(scheme),typeof(scheme), typeof(power_dist)}, nusers)
-            # Initialize the matrix of power allocations
-            power_matrix = @alloc(Float64, nusers, nslots)
-            # Make sure that power_matrix has all zeros
-            fill!(power_matrix, zero(eltype(power_matrix)))
-            # Instantiate the users for this frame
-            for u in eachindex(users)
-                users[u] = UserRealization(scheme, nslots; power_dist, power_strategy)
+    ## End of tracking variables
+    l = ReentrantLock() # We use this to avoid race conditions in modifying the number of frames/packets
+    Threads.@threads for idxs in chunks(1:max_simulated_frames; size=50)
+        inner_errored = 0
+        inner_simulated = 0
+        inner_sent = 0
+        inner_decoded = 0
+        for _ in idxs
+            # Compute the effective number of users for this frame
+            nusers = poisson ? rand(Poisson(mean_users)) : round(Int, mean_users)
+            ndecoded = @no_escape begin
+                # Initialize the vector of users
+                users = @alloc(UserRealization{max_replicas(scheme),typeof(scheme),typeof(power_dist)}, nusers)
+                # Initialize the matrix of power allocations
+                power_matrix = @alloc(Float64, nusers, nslots)
+                # Make sure that power_matrix has all zeros
+                fill!(power_matrix, zero(eltype(power_matrix)))
+                # Instantiate the users for this frame
+                for u in eachindex(users)
+                    users[u] = UserRealization(scheme, nslots; power_dist, power_strategy)
+                end
+                # Populate the power_matrix with the power of the users replicas
+                allocate_users!(power_matrix, users)
+                ndecoded = process_frame!(power_matrix, users; params)
             end
-            # Populate the power_matrix with the power of the users replicas
-            allocate_users!(power_matrix, users)
-            ndecoded = process_frame!(power_matrix, users; params)
-            total_decoded += ndecoded
-            total_sent += nusers
-            errored_frames += ndecoded < nusers
+            inner_decoded += ndecoded
+            inner_sent += nusers
+            inner_errored += ndecoded < nusers
+            inner_simulated += 1
         end
-        simulated_frames += 1
+        lock(l) do # Lock to prevent race conditions
+            total_decoded += inner_decoded
+            total_sent += inner_sent
+            errored_frames += inner_errored
+            simulated_frames += inner_simulated
+        end
         # Break if we reached the max number of errored frames
         errored_frames >= max_errored_frames && break
     end
@@ -100,8 +116,17 @@ function compute_plr_result(params::PLR_SimulationParameters, load)
     return plr_result
 end
 
+"""
+    plrs = extract_plr(sim::PLR_Simulation)
+    plr = extract_plr(p::Union{PLR_Simulation_Point,PLR_Result})
+
+Extract the PLR value (as a number between 0 and 1) from either a `PLR_Simulation` or a single `PLR_Simulation_Point` or `PLR_Result`.
+
+In the first case, the function will return a vector with an element for each load point in the `PLR_Simulation` object.
+"""
+function extract_plr end
 # Compute the actual PLR value (between 0 and 1) from the PLR_Result structure
-function compute_plr(r::PLR_Result; warn = true)
+function extract_plr(r::PLR_Result; warn=true)
     is_valid_result(r) || !warn || @warn(
     #! format: off
 "The provided PLR result does not seem to correspond to an actual simulation, as the number of simulated frames is 0."
@@ -110,26 +135,29 @@ function compute_plr(r::PLR_Result; warn = true)
     plr = 1 - r.total_decoded / r.total_sent
     return plr
 end
-compute_plr(params::PLR_SimulationParameters, load) = compute_plr_result(params, load) |> compute_plr
-function compute_plr(s::PLR_Simulation_Point; warn = true)
+function extract_plr(s::PLR_Simulation_Point; warn = true)
     (;load, plr) = s
     is_valid_result(s) || !warn || @warn(
     #! format: off
 "The load point $load does not seem to have been simulated yet.
-To compute the PLR, call `compute_plr!(s::PLR_Simulation)` first."
+To compute the PLR, call `extract_plr!(s::PLR_Simulation)` first."
     #! format: off
     )
-    compute_plr(plr; warn=false)
+    extract_plr(plr; warn=false)
 end
+exctract_plr(sim::PLR_Simulation) = sim.results .|> extract_plr
 
-function compute_plr!(s::PLR_Simulation)
-    Threads.@threads for i in eachindex(s.results)
-        simpoint = s.results[i]
-        # If this point already has a valid result, we skip it
-        is_valid_result(simpoint) && continue
-        (;load) = simpoint
-        plr = compute_plr_result(s.params, load)
-        s.results.plr[i] = plr
+function simulate!(s::PLR_Simulation; logger = progress_logger())
+
+    with_logger(logger) do
+        ProgressLogging.@progress name = "PLR Simulation" for i in eachindex(s.results)
+            simpoint = s.results[i]
+            # If this point already has a valid result, we skip it
+            is_valid_result(simpoint) && continue
+            (;load) = simpoint
+            plr = compute_plr_result(s.params, load)
+            s.results.plr[i] = plr
+        end
     end
     s
 end
