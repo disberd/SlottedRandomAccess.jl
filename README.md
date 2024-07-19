@@ -86,3 +86,6 @@ end
 # Plot the MF-CRDSA and CRDSA curves together
 Plot(vcat(crdsa_sims, mf_crdsa_sims))
 ```
+
+Which should generate something similar to the following picture:
+![image](https://github.com/user-attachments/assets/dc124fc1-4244-4801-91be-a8521474ca45)
