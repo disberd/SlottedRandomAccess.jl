@@ -162,6 +162,7 @@ point. Uses all available threads if not provided.
 """
 function simulate!(s::PLR_Simulation; logger = progress_logger(), ntasks::Union{Nothing,Int} = nothing)
     with_logger(logger) do
+        Threads.nthreads() == 1 && @warn("Your running julia session is only using one thread, consider starting julia with multiple threads to speed up the computation")
         ProgressLogging.@progress name = "PLR Simulation" for i in eachindex(s.results)
             simpoint = s.results[i]
             # If this point already has a valid result, we skip it
