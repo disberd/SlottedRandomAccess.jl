@@ -6,13 +6,21 @@ using Random
 using Bumper
 using StructArrays
 using DocStringExtensions
+using ChunkSplitters
+using ProgressLogging
+using Logging
+using LoggingExtras
+using TerminalLoggers
+using ScopedValues
 
 # from types.jl
-export PLR_Simulation, PLR_SimulationParameters, CRDSA, MF_CRDSA
+export PLR_Simulation, PLR_SimulationParameters, CRDSA, MF_CRDSA, SamePower, IndependentPower
 # from utils.jl
 export LogUniform_dB, add_scatter_kwargs!
-# from compute_plr
-export compute_plr, compute_plr!
+# from extract_plr
+export extract_plr, simulate!
+
+const NTASKS = ScopedValue(0)
 
 include("types.jl")
 include("interface_functions.jl")

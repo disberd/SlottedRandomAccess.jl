@@ -1,7 +1,7 @@
 module PlotlyBaseExt
 
 using PlotlyBase: Layout, scatter, Plot, attr, PlotlyBase
-using SlottedRandomAccess: default_layout, SlottedRandomAccess, PLR_Simulation, compute_plr, _plot
+using SlottedRandomAccess: default_layout, SlottedRandomAccess, PLR_Simulation, extract_plr
 
 const PLOTLY_DEFAULT_LAYOUT = Layout()
 
@@ -81,7 +81,7 @@ All kwargs are forwarded to the internal `scatter` call.
 """
 function PlotlyBase.scatter(sim::PLR_Simulation; kwargs...)
     x = sim.results.load
-    y = sim.results .|> compute_plr
+    y = sim.results .|> extract_plr
     return scatter(; x, y, mode="lines+markers", sim.scatter_kwargs..., kwargs...)
 end
 

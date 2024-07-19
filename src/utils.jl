@@ -1,3 +1,10 @@
+Base.:+(p1::PLR_Result, p2::PLR_Result) = PLR_Result(
+    p1.simulated_frames + p2.simulated_frames,
+    p1.errored_frames + p2.errored_frames,
+    p1.total_decoded + p2.total_decoded,
+    p1.total_sent + p2.total_sent
+)
+
 """
     LogUniform_dB(min_db,max_db)
 Defines a distribution whose pdf is uniform in dB between `min_db` and `max_db`.
@@ -20,6 +27,20 @@ function allocate_users!(power_matrix, users)
 	end
 	return power_matrix
 end
+
+const TERMINAL_LOGGER = Ref{TerminalLogger}()
+function terminal_logger()
+    isassigned(TERMINAL_LOGGER) && return TERMINAL_LOGGER[]
+    TERMINAL_LOGGER[] = TerminalLogger()
+end
+
+# The default set of loggers passed for the progress_channesl, including both the default one and a custom TerminalLogger to also show progress outside of the VSCode progress bar.
+progress_logger() = if isinteractive()
+    TeeLogger(current_logger(), terminal_logger())
+else
+    current_logger()
+end
+
 
 # Check if a result is valid or is just an initialized but not ran simulation
 is_valid_result(r::PLR_Result) = r.simulated_frames > 0

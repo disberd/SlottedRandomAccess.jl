@@ -13,3 +13,9 @@ using TestItemRunner
     Aqua.test_all(SlottedRandomAccess; ambiguities=false)
     Aqua.test_ambiguities(SlottedRandomAccess)
 end
+
+@testitem "JET" begin
+    using JET
+    using SlottedRandomAccess
+    report_package("SlottedRandomAccess")
+end
