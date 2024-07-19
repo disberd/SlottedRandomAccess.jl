@@ -150,7 +150,7 @@ exctract_plr(sim::PLR_Simulation) = sim.results .|> extract_plr
 Perform the simulation to compute the PLR for each load point in the `PLR_Simulation` object, using all available threads by default.
 The function sends a warning if julia is started with a single thread
 !!! note
-Points that already contain valid simulation results are skipped and a new simulation object must be explicitly created to recompute them.
+    Points that already contain valid simulation results are skipped and a new simulation object must be explicitly created to recompute them.
 
 # Keyword Arguments
 - `logger`: The logger to use for displaying the progress of the simulation. \

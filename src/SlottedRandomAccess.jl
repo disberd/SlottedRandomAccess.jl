@@ -14,7 +14,7 @@ using TerminalLoggers
 using ScopedValues
 
 # from types.jl
-export PLR_Simulation, PLR_SimulationParameters, CRDSA, MF_CRDSA, SamePower, IndependentPower
+export PLR_Simulation, PLR_SimulationParameters, CRDSA, MF_CRDSA, SamePower, IndependentPower, ReplicaPowerStrategy
 # from utils.jl
 export LogUniform_dB, add_scatter_kwargs!
 # from extract_plr

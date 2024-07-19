@@ -1,4 +1,7 @@
 # SlottedRandomAccess
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://disberd.github.io/SlottedRandomAccess.jl/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://disberd.github.io/SlottedRandomAccess.jl/dev)
+[![Build Status](https://github.com/disberd/SlottedRandomAccess.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/disberd/SlottedRandomAccess.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![](https://img.shields.io/badge/%F0%9F%9B%A9%EF%B8%8F_tested_with-JET.jl-233f9a)](https://github.com/aviatesk/JET.jl)
 
@@ -75,5 +78,3 @@ end
 # Plot the MF-CRDSA and CRDSA curves together
 Plot(vcat(crdsa_sims, mf_crdsa_sims))
 ```
-Which should generate something similar to the following picture:
-![image](https://github.com/user-attachments/assets/dc124fc1-4244-4801-91be-a8521474ca45)
