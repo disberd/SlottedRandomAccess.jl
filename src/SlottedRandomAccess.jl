@@ -11,6 +11,7 @@ using ProgressLogging
 using Logging
 using LoggingExtras
 using TerminalLoggers
+using ScopedValues
 
 # from types.jl
 export PLR_Simulation, PLR_SimulationParameters, CRDSA, MF_CRDSA, SamePower, IndependentPower
@@ -18,6 +19,8 @@ export PLR_Simulation, PLR_SimulationParameters, CRDSA, MF_CRDSA, SamePower, Ind
 export LogUniform_dB, add_scatter_kwargs!
 # from extract_plr
 export extract_plr, simulate!
+
+const NTASKS = ScopedValue(0)
 
 include("types.jl")
 include("interface_functions.jl")
