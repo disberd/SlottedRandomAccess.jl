@@ -144,14 +144,30 @@ To compute the PLR, call `extract_plr!(s::PLR_Simulation)` first."
 end
 exctract_plr(sim::PLR_Simulation) = sim.results .|> extract_plr
 
-function simulate!(s::PLR_Simulation; logger = progress_logger(), ntasks = NTASKS[])
+"""
+    simulate!(sim::PLR_Simulation; kwargs...)
+
+Perform the simulation to compute the PLR for each load point in the `PLR_Simulation` object, using all available threads by default.
+The function sends a warning if julia is started with a single thread
+!!! note
+Points that already contain valid simulation results are skipped and a new simulation object must be explicitly created to recompute them.
+
+# Keyword Arguments
+- `logger`: The logger to use for displaying the progress of the simulation. \
+Defaults to the default julia logger and also prints to the terminal via \
+TerminalLogger.jl when executed from an interactive julia session (i.e. the \
+REPL).
+- `ntasks`: The number of tasks to use for the parallel computation of each PLR \
+point. Uses all available threads if not provided.
+"""
+function simulate!(s::PLR_Simulation; logger = progress_logger(), ntasks::Union{Nothing,Int} = nothing)
     with_logger(logger) do
         ProgressLogging.@progress name = "PLR Simulation" for i in eachindex(s.results)
             simpoint = s.results[i]
             # If this point already has a valid result, we skip it
             is_valid_result(simpoint) && continue
             (;load) = simpoint
-            plr = with(NTASKS => ntasks) do
+            plr = with(NTASKS => something(ntasks, NTASKS[])) do
                 compute_plr_result(s.params, load)
             end
             s.results.plr[i] = plr
