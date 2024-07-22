@@ -141,11 +141,19 @@ end
 PLR_Simulation_Point(load::Float64) = PLR_Simulation_Point(load, PLR_Result())
 
 """
-$TYPEDSIGNATURES
+$TYPEDEF
 Type containing the parameters and results of a PLR simulation.
 
 # Fields
 $TYPEDFIELDS
+
+# Constructors
+    PLR_Simulation(load::AbstractVector; kwargs...)
+Create a `PLR_Simulation` object by simply providing the load vector. This forwards all the `kwargs` to the [`PLR_SimulationParameters`](@ref) constructor.
+
+    PLR_Simulation(load::AbstractVector, params::PLR_SimulationParameters; scatter_kwargs = Dict{Symbol, Any}())
+This constructor permits to provide both the load and the `params` field directly as positional arguments. The custom keyword arguments to pass to the `scatter` call from PlotlyBase can be provided using the `scatter_kwargs` keyword argument, which defaults to an empty `Dict`.
+
 """
 struct PLR_Simulation
     "Parameters used for the simulation"
