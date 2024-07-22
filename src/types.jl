@@ -154,6 +154,7 @@ Create a `PLR_Simulation` object by simply providing the load vector. This forwa
     PLR_Simulation(load::AbstractVector, params::PLR_SimulationParameters; scatter_kwargs = Dict{Symbol, Any}())
 This constructor permits to provide both the load and the `params` field directly as positional arguments. The custom keyword arguments to pass to the `scatter` call from PlotlyBase can be provided using the `scatter_kwargs` keyword argument, which defaults to an empty `Dict`.
 
+See also: [`PLR_SimulationParameters`](@ref)
 """
 struct PLR_Simulation
     "Parameters used for the simulation"
