@@ -137,7 +137,7 @@ function extract_plr(s::PLR_Simulation_Point; warn = true)
     is_valid_result(s) || !warn || @warn(
     #! format: off
 "The load point $load does not seem to have been simulated yet.
-To compute the PLR, call `extract_plr!(s::PLR_Simulation)` first."
+To compute the PLR, call `simulate!(s::PLR_Simulation)` first."
     #! format: off
     )
     extract_plr(plr; warn=false)
