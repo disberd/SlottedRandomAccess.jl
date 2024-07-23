@@ -17,7 +17,7 @@ See also [`CRDSA`](@ref), [`MF_CRDSA`](@ref)
 abstract type FixedRepSlottedRAScheme{N} <: SlottedRAScheme{N} end
 
 """
-    struct CRDSA{N, D} <: FixedRepSlottedRAScheme{N}
+$TYPEDEF
 Type representing the _Contention Resolution Diversity Slotted ALOHA_ (CRDSA)
 scheme, with a number of replicas `N`.
 
