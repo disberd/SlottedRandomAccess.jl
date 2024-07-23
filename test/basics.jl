@@ -19,4 +19,6 @@
     @test all(x -> x[1] == 1, test_vec)
     second_time_slots = unique(map(x -> x[2], test_vec))
     @test sort(second_time_slots) == [2,3]
+
+    @test_throws "cannot be greater than the number of time slots" MF_CRDSA{4}(3, () -> (1,2,3,4))
 end

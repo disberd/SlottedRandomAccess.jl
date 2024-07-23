@@ -76,7 +76,10 @@ struct MF_CRDSA{N, F} <: FixedRepSlottedRAScheme{N}
     "This function is used to generate the time slots (between 1 and `time_slots`). It should be a function (or callable) that takes no argument and return an `NTuple{N, Int}` with the time slots of each replica (without repetitions)."
     time_slots_function::F
     # Inner constructor
-    MF_CRDSA{N}(time_slots::Int, time_slots_function::F) where {N, F} = new{N, F}(time_slots, time_slots_function)
+    function MF_CRDSA{N}(time_slots::Int, time_slots_function::F) where {N, F} 
+        N <= time_slots || throw(ArgumentError("The number of replicas ($N) cannot be greater than the number of time slots ($time_slots)"))
+        new{N, F}(time_slots, time_slots_function)
+    end
 end
 MF_CRDSA{N}() where N = MF_CRDSA{N}(N, EachTimeSlot{N}())
 
