@@ -24,7 +24,7 @@ PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
 PlotlyBaseExt = ["PlotlyBase"]
 
 [compat]
-Bumper = "0.6"
+Bumper = "0.6, 0.7"
 ChunkSplitters = "2"
 Distributions = "0.25"
 DocStringExtensions = "0.9"
