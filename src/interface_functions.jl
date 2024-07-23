@@ -38,7 +38,7 @@ end
 # MF-CRDSA version, creates N random slots, each falling into the respective partition of `nslots` into `N` non-overlapping groups
 function replicas_positions(scheme::MF_CRDSA{N}, nslots) where N
     (;n_time_slots) = scheme # This is the number of assumed time slots in the frame
-	@assert mod(nslots, n_time_slots) == 0 "The number of total slots must be a multiple of the number of replicas"
+	@assert mod(nslots, n_time_slots) == 0 "The number of total slots must be a multiple of the number of time slots."
 	offset = nslots ÷ n_time_slots
     # We enforce the return type so that we get an error if the provided generation function gives the wrong one
     tslots = scheme.time_slots_function()::NTuple{N, Int}
