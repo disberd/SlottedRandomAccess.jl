@@ -15,7 +15,7 @@ function compute_plr_result(params::PLR_SimulationParameters, load)
             for _ in idxs
                 # Compute the effective number of users for this frame
                 nusers = poisson ? rand(Poisson(mean_users)) : round(Int, mean_users)
-                nusers > 0 && continue
+                nusers > 0 || continue
                 ndecoded = @no_escape begin
                     # Initialize the vector of users
                     users = @alloc(UserRealization{max_replicas(scheme),typeof(scheme),typeof(power_dist)}, nusers)
