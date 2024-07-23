@@ -1,7 +1,7 @@
 name = "SlottedRandomAccess"
 uuid = "3cd48f03-9865-4243-ab2c-9fbbaa30d0d4"
 authors = ["Alberto Mengali <disberd@gmail.com>"]
-version = "0.1.1"
+version = "0.2.0-DEV"
 
 [deps]
 Bumper = "8ce10254-0962-460f-a3d8-1f77fea1446e"
@@ -24,7 +24,7 @@ PlotlyBase = "a03496cd-edff-5a9b-9e67-9cda94a718b5"
 PlotlyBaseExt = ["PlotlyBase"]
 
 [compat]
-Bumper = "0.6"
+Bumper = "0.6, 0.7"
 ChunkSplitters = "2"
 Distributions = "0.25"
 DocStringExtensions = "0.9"
