@@ -1,5 +1,6 @@
 @testitem "Reduced Readme Example" begin
     using SlottedRandomAccess
+    using Test
     using PlotlyBase # This is not part of the package env
     # Generic parameters
     common = (; M=4, coderate=1 / 3, power_strategy=SamePower)
@@ -11,7 +12,7 @@
     ]
     ebno_max_vec = [6, 9, 12]
     # Define the load vector
-    load = 0.1:0.1:.2
+    load = [.6, .8, 1, 1.2]
     # Create the CRDSA curves
     crdsa_sims = map(1:3) do idx
         ebno_max = ebno_max_vec[idx]
@@ -59,6 +60,50 @@
         )
         simulate!(sim) # Compute the packet loss ratio
     end
+
+    # We test that the points computed are in the range to be similar to the paper results
+    load_idx = 1 # 0.6 load
+    @test extract_plr(crdsa_sims[1].results[load_idx]) > 1e-4 # 0.6 load
+    @test extract_plr(mf_crdsa_sims[1].results[load_idx]) > 1e-4 # 0.6 load
+    @test all(2:3) do ebno_max_idx
+        extract_plr(crdsa_sims[ebno_max_idx].results[load_idx]) < 1e-4 # 0.6 load
+    end
+    @test all(2:3) do ebno_max_idx
+        extract_plr(mf_crdsa_sims[ebno_max_idx].results[load_idx]) < 1e-4 # 0.6 load
+    end
+
+    load_idx = 2 # 0.8 load
+    for sim in (crdsa_sims[1], mf_crdsa_sims[1])
+        @test .05 < extract_plr(sim.results[load_idx]) < .1 # 0.8 load
+    end
+    @test extract_plr(crdsa_sims[2].results[load_idx]) < 1e-4 # 0.8 load
+    @test extract_plr(mf_crdsa_sims[2].results[load_idx]) > 1e-4 # 0.8 load
+
+    @test extract_plr(crdsa_sims[3].results[load_idx]) < 1e-4 # 0.8 load
+    @test extract_plr(mf_crdsa_sims[3].results[load_idx]) < 1e-4 # 0.8 load
+
+    load_idx = 3 # 1 load
+    for sim in (crdsa_sims[1], mf_crdsa_sims[1])
+        @test extract_plr(sim.results[load_idx]) > .5 # 1 load
+    end
+    for sim in (crdsa_sims[2], mf_crdsa_sims[2])
+        @test 1e-2 < extract_plr(sim.results[load_idx]) < 4e-2 # 1 load
+    end
+    for sim in (crdsa_sims[3], mf_crdsa_sims[3])
+        @test extract_plr(sim.results[load_idx]) < 1e-4 # 1 load
+    end
+
+    load_idx = 4 # 1.2 load
+    for sim in (crdsa_sims[1], mf_crdsa_sims[1])
+        @test extract_plr(sim.results[load_idx]) > .8 # 1.2 load
+    end
+    for sim in (crdsa_sims[2], mf_crdsa_sims[2])
+        @test .4 < extract_plr(sim.results[load_idx]) < .5 # 1.2 load
+    end
+    for sim in (crdsa_sims[3], mf_crdsa_sims[3])
+        @test .9e-2 < extract_plr(sim.results[load_idx]) < 1.1e-2 # 1.2 load
+    end
+
     # Plot the MF-CRDSA and CRDSA curves together
     Plot(vcat(crdsa_sims, mf_crdsa_sims))
 end
