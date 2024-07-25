@@ -84,7 +84,7 @@ end
 
 
 # Plot the MF-CRDSA and CRDSA curves together
-Plot(vcat(crdsa_sims, mf_crdsa_sims))
+Plot(vcat(crdsa_sims, mf_crdsa_sims); xaxis_dtick = .2)
 ```
 
 Which should generate something similar to the following picture:

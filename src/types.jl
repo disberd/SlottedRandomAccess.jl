@@ -122,7 +122,8 @@ struct UserRealization{N,RA<:SlottedRAScheme{N},D}
     "A Tuple of `N` NamedTuples (where `N` is the max number of replicas of the scheme), each containing the slot idx and power of each replica."
     slots_powers::NTuple{N,@NamedTuple{slot::Int, power::Float64}}
 end
-function UserRealization(scheme::SlottedRAScheme, nslots::Int; power_dist, power_strategy=SamePower)
+function UserRealization(scheme::SlottedRAScheme, nslots::Real; power_dist, power_strategy=SamePower)
+    nslots = Int(nslots)
     slots_powers = replicas_slots_powers(scheme, nslots; power_dist, power_strategy)
     UserRealization(scheme, nslots, power_dist, power_strategy, slots_powers)
 end
@@ -160,6 +161,17 @@ $TYPEDFIELDS
     "The maximum number of frames with errors to simulate. Once a simulation reaches this number of frames with errors, the simulation will stop."
     max_errored_frames::Int = 10^4
 end
+# We do a default positional constructor which promote types
+function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real)
+    coderate = Float64(coderate)
+    M = Int(M)
+    max_simulated_frames = Int(max_simulated_frames)
+    nslots = Int(nslots)
+    noise_variance = Float64(noise_variance)
+    SIC_iterations = Int(SIC_iterations)
+    max_errored_frames = Int(max_errored_frames)
+    return PLR_SimulationParameters(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames)
+end
 
 """
 $TYPEDSIGNATURES
@@ -179,12 +191,12 @@ $TYPEDFIELDS
     total_sent::Int = 0
 end
 struct PLR_Simulation_Point
-    "Normalized MAC Load at which the PLR result was computed"
+    "Normalized MAC Load (bits/s/Hz or bits/Symbol) at which the PLR result is computed"
     load::Float64
     "PLR result of the simulation"
     plr::PLR_Result
 end
-PLR_Simulation_Point(load::Float64) = PLR_Simulation_Point(load, PLR_Result())
+PLR_Simulation_Point(load::Real) = PLR_Simulation_Point(Float64(load), PLR_Result())
 
 """
 $TYPEDEF
