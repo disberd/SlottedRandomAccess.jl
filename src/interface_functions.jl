@@ -81,6 +81,7 @@ function replicas_slots_powers(s::SlottedRAScheme, nslots; power_dist, power_str
     effective_nreplicas = sum(!iszero, slots)
     powers = replicas_power(s, effective_nreplicas; power_dist, power_strategy)
     map(slots, powers) do slot, power
+        power = Float64(power)
         (;slot, power)
     end
 end
