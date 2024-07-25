@@ -122,7 +122,8 @@ struct UserRealization{N,RA<:SlottedRAScheme{N},D}
     "A Tuple of `N` NamedTuples (where `N` is the max number of replicas of the scheme), each containing the slot idx and power of each replica."
     slots_powers::NTuple{N,@NamedTuple{slot::Int, power::Float64}}
 end
-function UserRealization(scheme::SlottedRAScheme, nslots::Int; power_dist, power_strategy=SamePower)
+function UserRealization(scheme::SlottedRAScheme, nslots::Real; power_dist, power_strategy=SamePower)
+    nslots = Int(nslots)
     slots_powers = replicas_slots_powers(scheme, nslots; power_dist, power_strategy)
     UserRealization(scheme, nslots, power_dist, power_strategy, slots_powers)
 end
