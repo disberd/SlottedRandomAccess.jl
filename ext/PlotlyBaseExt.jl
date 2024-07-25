@@ -42,8 +42,6 @@ function SlottedRandomAccess.default_layout(s::PLR_Simulation; kwargs...)
             ),
         ),
         xaxis=attr(;
-            range=[0, 2],
-            dtick=0.2,
             tickfont=attr(;
                 family="Computer Modern",
                 size=15,
