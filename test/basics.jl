@@ -1,6 +1,7 @@
 @testitem "Basics" begin
     using SlottedRandomAccess
-    using SlottedRandomAccess: replicas_positions
+    using SlottedRandomAccess: replicas_positions, UserRealization
+    using Distributions
     using Test
 
     scheme = MF_CRDSA{3}()
@@ -21,4 +22,19 @@
     @test sort(second_time_slots) == [2,3]
 
     @test_throws "cannot be greater than the number of time slots" MF_CRDSA{4}(3, () -> (1,2,3,4))
+
+    # We test the implicit conversion when giving wrong parameters type (like Int to Float and viceversa)
+    scheme = CRDSA{2}()
+    power_dist = Dirac(3) # This has integer power which should be converted to Float64
+    nslots = 100.0 # This should be int
+    sim = PLR_Simulation(1:2; scheme, power_dist, nslots)
+    p = sim.params
+    @test p.nslots isa Int
+
+    user = UserRealization(scheme, nslots; power_dist, power_strategy=SamePower)
+    @test user.nslots isa Int
+    @test user.slots_powers isa NTuple{<:Any, @NamedTuple{slot::Int, power::Float64}}
+
+    # We run a simulation to make sure it doesn't error
+    simulate!(sim)
 end
