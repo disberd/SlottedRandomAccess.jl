@@ -160,6 +160,17 @@ $TYPEDFIELDS
     "The maximum number of frames with errors to simulate. Once a simulation reaches this number of frames with errors, the simulation will stop."
     max_errored_frames::Int = 10^4
 end
+# We do a default positional constructor which promote types
+function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real)
+    coderate = Float64(coderate)
+    M = Int(M)
+    max_simulated_frames = Int(max_simulated_frames)
+    nslots = Int(nslots)
+    noise_variance = Float64(noise_variance)
+    SIC_iterations = Int(SIC_iterations)
+    max_errored_frames = Int(max_errored_frames)
+    return PLR_SimulationParameters(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames)
+end
 
 """
 $TYPEDSIGNATURES
@@ -184,7 +195,7 @@ struct PLR_Simulation_Point
     "PLR result of the simulation"
     plr::PLR_Result
 end
-PLR_Simulation_Point(load::Float64) = PLR_Simulation_Point(load, PLR_Result())
+PLR_Simulation_Point(load::Real) = PLR_Simulation_Point(Float64(load), PLR_Result())
 
 """
 $TYPEDEF
