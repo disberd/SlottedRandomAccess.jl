@@ -191,7 +191,7 @@ $TYPEDFIELDS
     total_sent::Int = 0
 end
 struct PLR_Simulation_Point
-    "Normalized MAC Load at which the PLR result was computed"
+    "Normalized MAC Load (bits/s/Hz or bits/Symbol) at which the PLR result is computed"
     load::Float64
     "PLR result of the simulation"
     plr::PLR_Result
