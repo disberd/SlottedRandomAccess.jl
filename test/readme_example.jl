@@ -61,6 +61,9 @@
         simulate!(sim) # Compute the packet loss ratio
     end
 
+    # Plot the MF-CRDSA and CRDSA curves together
+    Plot(vcat(crdsa_sims, mf_crdsa_sims))
+
     # We test that the points computed are in the range to be similar to the paper results
     load_idx = 1 # 0.6 load
     @test extract_plr(crdsa_sims[1].results[load_idx]) > 9e-5 # 0.6 load
@@ -103,7 +106,4 @@
     for sim in (crdsa_sims[3], mf_crdsa_sims[3])
         @test .9e-2 < extract_plr(sim.results[load_idx]) < 1.1e-2 # 1.2 load
     end
-
-    # Plot the MF-CRDSA and CRDSA curves together
-    Plot(vcat(crdsa_sims, mf_crdsa_sims))
 end
