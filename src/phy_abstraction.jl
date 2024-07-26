@@ -57,8 +57,71 @@ function PLR_cr12(ebno)
     return 10^(-1.209949465790318 * ebno_db + 0.805939656426635)
 end
 
+# Here we specify the PLR Fit functions based on the TOPCOM simulations and derived in the `plr_fit_notebook` notebook in the root folder of the package
+const Turbo4G_K328_N996 = PLR_Fit(; # Called rate 0.333 + tail in the excel/notebook
+    plr_func = GeneralizedLogistic(;
+        a = 11.222270287021855,
+        b = 1.1002500059931908,
+        c = 1.9082963980251082,
+    ),
+    K = 328,
+    N = 996,
+    M = 4
+)
+
+const Turbo4G_K328_N984 = PLR_Fit(; # Called rate 0.333 in the excel/notebook
+    plr_func = GeneralizedLogistic(;
+        a = 12.522847183794692,
+        b = 1.082327234915074,
+        c = 1.5659905222996022,
+    ),
+    K = 328,
+    N = 984,
+    M = 4
+)
+
+const Turbo4G_K328_N768 = PLR_Fit(; # Called rate 0.43 in the excel/notebook
+    plr_func = GeneralizedLogistic(;
+        a = 12.191513697277149,
+        b = 1.1790946849030453,
+        c = 1.4728541235625978,
+    ),
+    K = 328,
+    N = 768,
+    M = 4
+)
+
+const Turbo4G_K328_N656 = PLR_Fit(; # Called rate 0.5 in the excel/notebook
+    plr_func = GeneralizedLogistic(;
+        a = 12.654704916641844,
+        b = 1.2321133055776214,
+        c = 1.138399608628814,
+    ),
+    K = 328,
+    N = 656,
+    M = 4
+)
+
+const Turbo4G_K328_N576 = PLR_Fit(; # Called rate 0.57 in the excel/notebook
+    plr_func = GeneralizedLogistic(;
+        a = 12.16286013502115,
+        b = 1.3285443336805753,
+        c = 1.0735329127586615,
+    ),
+    K = 328,
+    N = 576,
+    M = 4
+)
+
 function default_plr_function(rate)
     rate ≈ 1/3 && return PLR_cr13
     rate ≈ 1/2 && return PLR_cr12
-    error("The provided rate does not have a corresponding default packet loss rate function")
+    (rate ≈ .57 || rate ≈ 328/576) && return Turbo4G_K328_N576
+    (rate ≈ .43 || rate ≈ 328/768) && return Turbo4G_K328_N768
+    error(
+        #! format: off
+"The provided rate does not have a corresponding default packet loss rate function.
+Please provide manually the function to use for the specified `coderate` by passing it as the `prl_func` kwarg when constructing the `PLR_Simulation` or `PLR_SimulationParameters` object."
+        #! format: on
+        )
 end

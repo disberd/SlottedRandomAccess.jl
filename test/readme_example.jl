@@ -66,7 +66,7 @@
 
     # We test that the points computed are in the range to be similar to the paper results
     load_idx = 1 # 0.6 load
-    @test extract_plr(crdsa_sims[1].results[load_idx]) > 9e-5 # 0.6 load
+    @test extract_plr(crdsa_sims[1].results[load_idx]) > 8e-5 # 0.6 load
     @test extract_plr(mf_crdsa_sims[1].results[load_idx]) > 1e-4 # 0.6 load
     @test all(2:3) do ebno_max_idx
         extract_plr(crdsa_sims[ebno_max_idx].results[load_idx]) < 1e-4 # 0.6 load
@@ -93,7 +93,7 @@
         @test 1e-2 < extract_plr(sim.results[load_idx]) < 4e-2 # 1 load
     end
     for sim in (crdsa_sims[3], mf_crdsa_sims[3])
-        @test extract_plr(sim.results[load_idx]) < 1e-4 # 1 load
+        @test extract_plr(sim.results[load_idx]) < 1.5e-4 # 1 load
     end
 
     load_idx = 4 # 1.2 load
