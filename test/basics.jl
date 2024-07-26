@@ -52,3 +52,29 @@
     @test 0.04 > f(2) > 0.03
     @test 6e-3 > f(2.5) > 2e-3
 end
+
+@testitem "Overhead" begin
+    # This test just do some basic checks on the overhead parameter using the curves from the paper
+    using SlottedRandomAccess
+    using Test
+
+    # Simulating with an overhead of 0.5 should be equivalent to assuming a 0 overhead but scaling the load by a factor 1.5
+    common = (; M=4, coderate=1 / 3, power_strategy=SamePower)
+    coding_gain = common.coderate * log2(common.M) |> x -> -10log10(x)
+    power_dist = LogUniform_dB(2 - coding_gain, 6 - coding_gain)
+    nslots = 100
+    load = .7:.1:1 
+    scheme = CRDSA{3}()
+    # Do the simulation with normal load but overhead
+    sim_overhead = PLR_Simulation(load; common..., power_dist, scheme, nslots, overhead=0.5)
+    simulate!(sim_overhead)
+    # Do the simulation with scaled load an no overhead, not provided as it defaults to 0
+    sim_scaled = PLR_Simulation(load .* (1 + 0.5); common..., power_dist, scheme, nslots)
+    simulate!(sim_scaled)
+
+    for i in eachindex(load)
+        plr_overhead = extract_plr(sim_overhead.results[i])
+        plr_scaled = extract_plr(sim_scaled.results[i])
+        @test isapprox(plr_overhead, plr_scaled; rtol = .1)
+    end
+end
