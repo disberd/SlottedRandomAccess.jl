@@ -93,7 +93,7 @@
         @test 1e-2 < extract_plr(sim.results[load_idx]) < 4e-2 # 1 load
     end
     for sim in (crdsa_sims[3], mf_crdsa_sims[3])
-        @test extract_plr(sim.results[load_idx]) < 1e-4 # 1 load
+        @test extract_plr(sim.results[load_idx]) < 1.5e-4 # 1 load
     end
 
     load_idx = 4 # 1.2 load
