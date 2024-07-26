@@ -265,7 +265,7 @@ julia> g(1.3) # This is not ebno in db, but linear
 
 See the `plr_fit_notebook.jl` notebook in the package root folder for example of fitting to real simulated data.
 """
-struct GeneralizedLogistic
+@kwdef struct GeneralizedLogistic
 	a::Float64
 	b::Float64
 	c::Float64
