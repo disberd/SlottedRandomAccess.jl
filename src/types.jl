@@ -236,3 +236,61 @@ function PLR_Simulation(load::AbstractVector, params::PLR_SimulationParameters; 
     results = StructArray(map(l -> PLR_Simulation_Point(l), load); unwrap=T -> !(T <: Real))
     PLR_Simulation(params, results, scatter_kwargs)
 end
+
+"""
+$TYPEDEF
+Type representing a generalized logistic function with specific parameters `a`, `b` and `c`, used to approximate a PLR curve as a function of the (linear) `EbN0`. The approximating function takes the following form:
+```math
+f(E_bN_0) = (1 + exp(a ⋅ (E_bN_0 - b)))^{-c}
+```
+
+Any instance of this type can be called with a single number `ebno` as input and returns the resulting approximated PLR value following the formula above.
+
+# Fields
+$TYPEDFIELDS
+
+# Constructors
+The sole constructor takes 3 input numbers representing the `a`, `b` and `c` parameters in this order.
+
+# Examples
+```jldoctest
+julia> using TelecomUtils
+
+julia> g = GeneralizedLogistic(3, 1.1, 1.2)
+GeneralizedLogistic(3.0, 1.1, 1.2)
+
+julia> g(1.3) # This is not ebno in db, but linear
+0.287945071618515
+```
+
+See the `plr_fit_notebook.jl` notebook in the package root folder for example of fitting to real simulated data.
+"""
+struct GeneralizedLogistic
+	a::Float64
+	b::Float64
+	c::Float64
+end
+(gl::GeneralizedLogistic)(ebno) = @. (1 + exp(gl.a * (ebno - gl.b)))^(-gl.c)
+
+"""
+$TYPEDEF
+This type is mostly used internally to identify PLR fitting obtained by full PHY simulations in AWGN conditions.
+
+Instances of this type can be called directly with a single number `ebno` as input and returns the resulting approximated PLR value using the embedded approximating function `plr_func`.
+
+# Fields
+$TYPEDFIELDS
+
+See the `plr_fit_notebook.jl` notebook in the package root folder for example of fitting to real simulated data simulated with TOPCOM.
+"""
+@kwdef struct PLR_Fit
+    "GeneralizedLogistic function approximating the PLR for the PHY simulation associated to this object."
+    plr_func::GeneralizedLogistic
+    "Number of coded bits in the PHY simulation associated to this object."
+    N::Int
+    "Number of information bits in the PHY simulation associated to this object."
+    K::Int
+    "Modulation Cardinality used in the PHY simulation associated to this object."
+    M::Int
+end
+(p::PLR_Fit)(ebno) = p.plr_func(ebno)
