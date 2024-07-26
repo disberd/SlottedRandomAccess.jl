@@ -1,8 +1,8 @@
 # This computes the PLR result for a given load using multiple threads
 function compute_plr_result(params::PLR_SimulationParameters, load)
     @nospecialize
-    (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy) = params
-    coding_gain = 1 / (coderate * log2(M))
+    (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy, overhead) = params
+    coding_gain = 1 / (coderate * log2(M) * (1 + overhead))
     mean_users = nslots * load * coding_gain
     plr = PLR_Result() # Initializ the plr result
     ## End of tracking variables
@@ -81,8 +81,8 @@ end
 
 # Block actualy performing the decoding iterations for a single frame
 function _decoding_iterations!(slots_powers, decoded, cancelled, interference_changed; params, users)
-    (; coderate, M, plr_func, SIC_iterations) = params
-    coding_gain = 1 / (coderate * log2(M))
+    (; coderate, M, plr_func, SIC_iterations, overhead) = params
+    coding_gain = 1 / (coderate * log2(M) * (1 + overhead))
     for iter in 1:SIC_iterations
         all(decoded) && break # Stop the simulation if all users are decoded
         for u in eachindex(users)

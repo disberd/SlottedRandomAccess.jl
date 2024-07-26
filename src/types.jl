@@ -160,9 +160,11 @@ $TYPEDFIELDS
     SIC_iterations::Int = 15
     "The maximum number of frames with errors to simulate. Once a simulation reaches this number of frames with errors, the simulation will stop."
     max_errored_frames::Int = 10^4
+    "Overhead assumed for the framing and or guard bands/times in the simulation. It must be a positive number representing the overhead compared to an ideal case where all resources are fully used for sending data (e.g. no pilots, no roll-off, no guard bands, no guard times). An overhead value of `1.0` implies that the spectral efficiency is half of the ideal case."
+    overhead::Float64 = 0.0
 end
 # We do a default positional constructor which promote types
-function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real)
+function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real, overhead::Real)
     coderate = Float64(coderate)
     M = Int(M)
     max_simulated_frames = Int(max_simulated_frames)
@@ -170,7 +172,8 @@ function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real
     noise_variance = Float64(noise_variance)
     SIC_iterations = Int(SIC_iterations)
     max_errored_frames = Int(max_errored_frames)
-    return PLR_SimulationParameters(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames)
+    overhead = Float64(overhead)
+    return PLR_SimulationParameters(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames, overhead)
 end
 
 """
