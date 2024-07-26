@@ -1,9 +1,10 @@
 # This computes the PLR result for a given load using multiple threads
 function compute_plr_result(params::PLR_SimulationParameters, load)
     @nospecialize
-    (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy) = params
+    (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy, overhead) = params
     coding_gain = 1 / (coderate * log2(M))
-    mean_users = nslots * load * coding_gain
+    # The overehad increase the required number of users for the same normalized MAC load, as the overhead does not carry information
+    mean_users = nslots * load * coding_gain * (1 + overhead)
     plr = PLR_Result() # Initializ the plr result
     ## End of tracking variables
     l = ReentrantLock() # We use this to avoid race conditions in modifying the number of frames/packets
@@ -90,6 +91,12 @@ function _decoding_iterations!(slots_powers, decoded, cancelled, interference_ch
             for (; slot, power) in users[u].slots_powers
                 interference_changed[slot] || continue
                 snir_this = power / (slots_powers[slot] - power)
+                #= 
+                We do not consider the overhead when going from SNIR to EbNo because we assume that all sources of overhead can be filtered out when actually going to SNR.
+                For example, frequency guard bands will not be included in the SRRC filter so also the noise will be removed in those band.
+                Similarly for time guard bands, the increased time will reduce the effective spectral efficiency in b/s/Hz but no power will be wasted in those bands (and no noise will be sampled).
+                Lastly, for the pilots, they can be seen as additional time, so for a given power the energy of the useful symbols will not change, the transmitter will use more energy overall as it is transmitting pilots but the non-pilot symbol will have the same energy.
+                =#
                 ebno = snir_this * coding_gain
                 # Use a coin flip to check if a packet is decoded, based on the PLR for the experienced ebno
                 this_decoded = rand() >= plr_func(ebno)
