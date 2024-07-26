@@ -1,7 +1,7 @@
 name = "SlottedRandomAccess"
 uuid = "3cd48f03-9865-4243-ab2c-9fbbaa30d0d4"
 authors = ["Alberto Mengali <disberd@gmail.com>"]
-version = "0.2.2"
+version = "0.2.3-DEV"
 
 [deps]
 Bumper = "8ce10254-0962-460f-a3d8-1f77fea1446e"
