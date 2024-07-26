@@ -1,6 +1,7 @@
 @testitem "Basics" begin
     using SlottedRandomAccess
     using SlottedRandomAccess: replicas_positions, UserRealization
+    using SlottedRandomAccess: default_plr_function, Turbo4G_K328_N576, Turbo4G_K328_N768
     using Distributions
     using Test
 
@@ -37,4 +38,17 @@
 
     # We run a simulation to make sure it doesn't error
     simulate!(sim)
+
+    # Test the default plr works for the new fitted data
+    @test default_plr_function(.57) === default_plr_function(328/576) === Turbo4G_K328_N576
+    @test default_plr_function(.43) === default_plr_function(328/768) === Turbo4G_K328_N768
+    @test_throws "Please provide manually" default_plr_function(.11)
+
+    # Call some points in the fitted simulation to check the results are correct
+    db2lin(x) = 10^(x/10)
+    f(x) = Turbo4G_K328_N576(db2lin(x))
+    @test f(0) > 0.98
+    @test 0.7 > f(1) > 0.65
+    @test 0.04 > f(2) > 0.03
+    @test 6e-3 > f(2.5) > 2e-3
 end
