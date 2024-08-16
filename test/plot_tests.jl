@@ -15,4 +15,6 @@
 
     layout_2 = Plot(sim_1; xtype = :speff).layout;
     @test layout_2.xaxis_title_text == "Average Load, G (bits/symbol)"
+
+    @test_throws "`xtype`" Plot(sim_1; xtype = :asd).layout; 
 end
