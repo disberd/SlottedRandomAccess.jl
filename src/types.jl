@@ -192,7 +192,7 @@ $TYPEDFIELDS
     "The number of RA frames to simulate for each Load point"
     max_simulated_frames::Int = 10^5
     "The number of slots in each RA frame"
-    nslots::Int
+    nslots::Int = 0
     "The function used to compute the PLR for a given packet as a function of its equivalent Eb/N0"
     plr_func::F = default_plr_function(coderate)
     "The variance of the noise, assumed as N0 in the simulation"
@@ -203,18 +203,25 @@ $TYPEDFIELDS
     max_errored_frames::Int = 10^4
     "Overhead assumed for the framing and or guard bands/times in the simulation. It must be a positive number representing the overhead compared to an ideal case where all resources are fully used for sending data (e.g. no pilots, no roll-off, no guard bands, no guard times). An overhead value of `1.0` implies that the spectral efficiency is half of the ideal case."
     overhead::Float64 = 0.0
-end
-# We do a default positional constructor which promote types
-function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real, overhead::Real)
-    coderate = Float64(coderate)
-    M = Int(M)
-    max_simulated_frames = Int(max_simulated_frames)
-    nslots = Int(nslots)
-    noise_variance = Float64(noise_variance)
-    SIC_iterations = Int(SIC_iterations)
-    max_errored_frames = Int(max_errored_frames)
-    overhead = Float64(overhead)
-    return PLR_SimulationParameters(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames, overhead)
+    # We do a default positional constructor which promote types
+    function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real, overhead::Real)
+        RA = typeof(scheme)
+        F = typeof(plr_func)
+        coderate = Float64(coderate)
+        M = Int(M)
+        max_simulated_frames = Int(max_simulated_frames)
+        nslots = Int(nslots)
+        if RA <: RA4Step
+            @assert nslots === 0 "You can't set the `nslots` directly for the RA4Step scheme, do not assign this value in the constructor (or explicitly assign 0 to it)"
+        else
+            @assert nslots !== 0 "You need to set the number of slots (> 0) while constructing the `PLR_SimulationParameters` instance"
+        end
+        noise_variance = Float64(noise_variance)
+        SIC_iterations = Int(SIC_iterations)
+        max_errored_frames = Int(max_errored_frames)
+        overhead = Float64(overhead)
+        return new{RA,F}(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames, overhead)
+    end
 end
 
 """
