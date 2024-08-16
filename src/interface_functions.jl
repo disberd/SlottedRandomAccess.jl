@@ -94,3 +94,6 @@ function replicas_slots_powers(s::SlottedRAScheme, nslots; power_dist, power_str
         (;slot, power)
     end
 end
+
+compute_coding_gain(params::PLR_SimulationParameters) = 1 / (params.coderate * log2(params.M))
+compute_coding_gain(sim::PLR_Simulation) = compute_coding_gain(sim.params)

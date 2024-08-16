@@ -1,7 +1,7 @@
 # This computes the PLR result for a given load using multiple threads
 function compute_plr_result(params::PLR_SimulationParameters, load)
     @nospecialize
-    (; scheme, poisson, coderate, M, max_simulated_frames, max_errored_frames, power_dist, power_strategy, overhead) = params
+    (; scheme, poisson, max_simulated_frames, max_errored_frames, power_dist, power_strategy, overhead) = params
     # Since introduction of RA4Step we need to differentiate between the number of slots used for the random access part and the number of slots msg3 transmission. For other schemes these are the same and equivalent to the nslots parameter
     ra_slots, user_slots = if scheme isa RA4Step
         ra_slots = msg1_slots(scheme)
@@ -11,7 +11,7 @@ function compute_plr_result(params::PLR_SimulationParameters, load)
         ra_slots = user_slots = params.nslots
         ra_slots, user_slots
     end
-    coding_gain = 1 / (coderate * log2(M))
+    coding_gain = compute_coding_gain(params)
     # The overehad increase the required number of users for the same normalized MAC load, as the overhead does not carry information.
     mean_users = user_slots * load * coding_gain * (1 + overhead)
     plr = PLR_Result() # Initializ the plr result
@@ -96,8 +96,8 @@ end
 
 # Block actualy performing the decoding iterations for a single frame
 function _decoding_iterations!(slots_powers, decoded, cancelled, interference_changed; params, users)
-    (; coderate, M, plr_func, SIC_iterations, noise_variance) = params
-    coding_gain = 1 / (coderate * log2(M))
+    (; plr_func, SIC_iterations, noise_variance) = params
+    coding_gain = compute_coding_gain(params)
     for iter in 1:SIC_iterations
         all(decoded) && break # Stop the simulation if all users are decoded
         for u in eachindex(users)

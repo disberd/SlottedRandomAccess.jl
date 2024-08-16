@@ -1,7 +1,7 @@
 module PlotlyBaseExt
 
 using PlotlyBase: Layout, scatter, Plot, attr, PlotlyBase
-using SlottedRandomAccess: default_layout, SlottedRandomAccess, PLR_Simulation, extract_plr
+using SlottedRandomAccess: default_layout, SlottedRandomAccess, PLR_Simulation, extract_plr, compute_coding_gain
 
 const PLOTLY_DEFAULT_LAYOUT = Layout()
 
@@ -14,7 +14,7 @@ function empty_layout(; kwargs...)
     return layout
 end
 
-function SlottedRandomAccess.default_layout(s::PLR_Simulation; kwargs...)
+function SlottedRandomAccess.default_layout(s::PLR_Simulation; xtype = :speff, kwargs...)
     default = Layout(;
         template="none",
         yaxis=attr(;
@@ -47,7 +47,13 @@ function SlottedRandomAccess.default_layout(s::PLR_Simulation; kwargs...)
                 size=15,
             ),
             title=attr(;
-                text="Average Load, G (bits/symbol)",
+                text= if xtype === :speff
+                    "Average Load, G (bits/symbol)"
+                elseif xtype === :packets
+                    "Average Load (packets/slot)"
+                else
+                    error("The second `xtype` kwarg can only be `:speff` or `:packets`")
+                end,
                 font=attr(;
                     family="Computer Modern",
                     size=16,
@@ -77,14 +83,21 @@ Creates a scatter using the load values as X and the PLR values as Y.
 
 All kwargs are forwarded to the internal `scatter` call.
 """
-function PlotlyBase.scatter(sim::PLR_Simulation; kwargs...)
+function PlotlyBase.scatter(sim::PLR_Simulation, xtype::Symbol = :speff; kwargs...)
     x = sim.results.load
+    if xtype === :speff
+    elseif xtype === :packets
+        coding_gain = compute_coding_gain(sim)
+        x .* coding_gain
+    else 
+        error("The second arugment (`xtype`) can only be `:speff` or `:packets`")
+    end
     y = sim.results .|> extract_plr
     return scatter(; x, y, mode="lines+markers", sim.scatter_kwargs..., kwargs...)
 end
 
-PlotlyBase.Plot(sims::AbstractVector{<:PLR_Simulation}, layout::Layout; kwargs...) = Plot(map(scatter, sims), layout; kwargs...)
-PlotlyBase.Plot(sims::AbstractVector{<:PLR_Simulation}; kwargs...) = Plot(sims, default_layout(first(sims); kwargs...))
+PlotlyBase.Plot(sims::AbstractVector{<:PLR_Simulation}, layout::Layout; xtype = :speff, kwargs...) = Plot(map(Base.Fix2(scatter, xtype), sims), layout; kwargs...)
+PlotlyBase.Plot(sims::AbstractVector{<:PLR_Simulation}; xtype = :speff, kwargs...) = Plot(sims, default_layout(first(sims); xtype, kwargs...); xtype)
 function PlotlyBase.Plot(sim::PLR_Simulation, args...; kwargs...)
     @nospecialize
     Plot([sim], args...; kwargs...)
