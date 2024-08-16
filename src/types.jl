@@ -26,6 +26,13 @@ This RA scheme was introduced in [this 2007 IEEE paper](https://doi.org/10.1109/
 See also: [`MF_CRDSA`](@ref)
 """
 struct CRDSA{N} <: FixedRepSlottedRAScheme{N} end
+"""
+    const SlottedALOHA = CRDSA{1}
+This is just an alias to represent SlottedALOHA with the CRDSA type, you create a slotted aloha scheme with the following code:
+```julia-repl
+julia> scheme = SlottedALOHA()
+```
+"""
 const SlottedALOHA = CRDSA{1}
 
 """
@@ -84,6 +91,27 @@ struct MF_CRDSA{N, F} <: FixedRepSlottedRAScheme{N}
 end
 MF_CRDSA{N}() where N = MF_CRDSA{N}(N, EachTimeSlot{N}())
 
+"""
+$TYPEDEF
+Type representing the 4-step RA procedure, where Slotted ALOHA is used during the RA contention period (msg1) and succesfully decoded msg1 packets are used to allocate orthogonal resources for the msg3 transmission of the actual data.
+
+!!! note
+    This type of RA scheme will only simulate the packet decoding process for the msg1 and optionally limit the maximum number of succesfull packets per frame to be the number of slots available for msg3 transmission.
+
+# Fields
+$TYPEDFIELDS
+
+# Constructors
+    RA4Step(msg1_occasions, msg3_occasions; freq_slots = 48, limit_packets = true)
+
+## Example
+The code below will generate a 4-step RA scheme with 5 time occasions for msg1 every 2 time occasions for msg3, while assuming 20 frequency slots (i.e. subcarriers) for each time slots and while limiting the maximum number of decoded packets in each frame to the actual number of msg3 slots (which is `2 * 20`).
+```julia-repl
+julia> scheme = RA4Step(5, 2; freq_slots = 20, limit_packets = true)
+```
+
+See also: [`CRDSA`](@ref), [`MF-CRDSA`](@ref)
+"""
 @kwdef struct RA4Step <: FixedRepSlottedRAScheme{1} 
     "Number of time occasions (slots) in each RA frame allocated to the msg1 random access."
     msg1_occasions::Int
@@ -311,4 +339,10 @@ See the `plr_fit_notebook.jl` notebook in the package root folder for example of
 end
 (p::PLR_Fit)(ebno) = p.plr_func(ebno)
 
+"""
+    CollisionModel()
+Type to be used as `plr_func` when instantiating [`PLR_SimulationParameters`](@ref) or [`PLR_Simulation`](@ref), which will mimic a collision model for the PHY abstraction.
+!!! note
+    An instance of `CollisionModel` is not callable like all other `plr_func` values, the collision model is just implemented directly inside the inner code performing the simulation.
+"""
 struct CollisionModel end
