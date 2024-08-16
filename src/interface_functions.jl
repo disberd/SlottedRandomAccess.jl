@@ -21,6 +21,7 @@ See also: [`replicas_power`](@ref)
 """
 function replicas_positions end
 # CRDSA version, creates N random independent slots between 1 and nslots
+replicas_positions(::SlottedALOHA, nslots) = (rand(1:nslots),)
 function replicas_positions(::CRDSA{N}, nslots) where N
 	@no_escape begin
 		a = @alloc(Int, N)
@@ -46,6 +47,14 @@ function replicas_positions(scheme::MF_CRDSA{N}, nslots) where N
 		rand(1:offset) + (tslots[i]-1) * offset
 	end
 end
+
+# This function expects a number of slots in input which is not the slots passed to the PLR_SimulationParameters contructor, but is just based on the parameters of the RA4Step function.
+function replicas_positions(scheme::RA4Step, nslots) 
+    @assert nslots == msg1_slots(scheme) "The number of slots passed to this function does not match the expected number of virtual slots for the specified scheme $(scheme)"
+    replicas_positions(SlottedALOHA(), nslots)
+end
+msg1_slots(scheme::RA4Step) = scheme.msg1_occasions * scheme.freq_slots
+msg3_slots(scheme::RA4Step) = scheme.msg3_occasions * scheme.freq_slots
 
 """
     replicas_power(::SlottedRAScheme, effective_nreplicas::Int)

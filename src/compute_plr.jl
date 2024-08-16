@@ -1,10 +1,19 @@
 # This computes the PLR result for a given load using multiple threads
 function compute_plr_result(params::PLR_SimulationParameters, load)
     @nospecialize
-    (; scheme, poisson, coderate, M, max_simulated_frames, nslots, max_errored_frames, power_dist, power_strategy, overhead) = params
+    (; scheme, poisson, coderate, M, max_simulated_frames, max_errored_frames, power_dist, power_strategy, overhead) = params
+    # Since introduction of RA4Step we need to differentiate between the number of slots used for the random access part and the number of slots msg3 transmission. For other schemes these are the same and equivalent to the nslots parameter
+    ra_slots, user_slots = if scheme isa RA4Step
+        ra_slots = msg1_slots(scheme)
+        user_slots = msg3_slots(scheme)
+        ra_slots, user_slots
+    else
+        ra_slots = user_slots = params.nslots
+        ra_slots, user_slots
+    end
     coding_gain = 1 / (coderate * log2(M))
-    # The overehad increase the required number of users for the same normalized MAC load, as the overhead does not carry information
-    mean_users = nslots * load * coding_gain * (1 + overhead)
+    # The overehad increase the required number of users for the same normalized MAC load, as the overhead does not carry information.
+    mean_users = user_slots * load * coding_gain * (1 + overhead)
     plr = PLR_Result() # Initializ the plr result
     ## End of tracking variables
     l = ReentrantLock() # We use this to avoid race conditions in modifying the number of frames/packets
@@ -21,12 +30,12 @@ function compute_plr_result(params::PLR_SimulationParameters, load)
                     # Initialize the vector of users
                     users = @alloc(UserRealization{max_replicas(scheme),typeof(scheme),typeof(power_dist)}, nusers)
                     # Initialize the matrix of power allocations
-                    power_matrix = @alloc(Float64, nusers, nslots)
+                    power_matrix = @alloc(Float64, nusers, ra_slots)
                     # Make sure that power_matrix has all zeros
                     fill!(power_matrix, zero(eltype(power_matrix)))
                     # Instantiate the users for this frame
                     for u in eachindex(users)
-                        users[u] = UserRealization(scheme, nslots; power_dist, power_strategy)
+                        users[u] = UserRealization(scheme, ra_slots; power_dist, power_strategy)
                     end
                     # Populate the power_matrix with the power of the users replicas
                     allocate_users!(power_matrix, users)
@@ -58,11 +67,11 @@ number of decoded users at the end of the SIC process.
 function process_frame!(power_matrix, users; params::PLR_SimulationParameters)
     @assert length(users) === size(power_matrix, 1) "Mismatch in matrix rows and number of users"
     nusers, nslots = size(power_matrix)
+    (; noise_variance, scheme) = params
     ndecoded = @no_escape begin
         decoded = @alloc(Bool, nusers) # This will track which user is decoded
         cancelled = @alloc(Bool, nusers) # This will track which user is cancelled
         slots_powers = @alloc(eltype(power_matrix), nslots)
-        (; noise_variance) = params
         interference_changed = @alloc(Bool, nslots) # This will hold a flag per slot specifying whether the intereference in the slot changed in the last iteration
         # We initialize the arrays used for the computation
         fill!(decoded, false)
@@ -77,12 +86,17 @@ function process_frame!(power_matrix, users; params::PLR_SimulationParameters)
         # We get the total number of decoded users
         sum(decoded)
     end
-    return ndecoded
+    if scheme isa RA4Step && scheme.limit_packets
+        # For RA4Step and if we are limiting transmission we have to make sure we can't decode more than (nslots - n_rao), where nslots is the one inside params, as the `nslots` extracted from the power matric represents the `virtual slots` just used for msg1
+        return min(msg3_slots(scheme), ndecoded)
+    else
+        return ndecoded
+    end
 end
 
 # Block actualy performing the decoding iterations for a single frame
 function _decoding_iterations!(slots_powers, decoded, cancelled, interference_changed; params, users)
-    (; coderate, M, plr_func, SIC_iterations) = params
+    (; coderate, M, plr_func, SIC_iterations, noise_variance) = params
     coding_gain = 1 / (coderate * log2(M))
     for iter in 1:SIC_iterations
         all(decoded) && break # Stop the simulation if all users are decoded
@@ -99,7 +113,11 @@ function _decoding_iterations!(slots_powers, decoded, cancelled, interference_ch
                 =#
                 ebno = snir_this * coding_gain
                 # Use a coin flip to check if a packet is decoded, based on the PLR for the experienced ebno
-                this_decoded = rand() >= plr_func(ebno)
+                this_decoded = if plr_func isa CollisionModel
+                    snir_this ≈ power/noise_variance
+                else
+                    rand() >= plr_func(ebno)
+                end
                 if this_decoded
                     decoded[u] = true
                     break # We skip the rest of the packtes for this user once the first is decoded

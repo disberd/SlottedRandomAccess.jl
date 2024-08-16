@@ -26,6 +26,7 @@ This RA scheme was introduced in [this 2007 IEEE paper](https://doi.org/10.1109/
 See also: [`MF_CRDSA`](@ref)
 """
 struct CRDSA{N} <: FixedRepSlottedRAScheme{N} end
+const SlottedALOHA = CRDSA{1}
 
 """
     This strcut, when called, will simply return the tuple of Int numbers from `1` to `N`. It is used as the default _Callable_ when initializing the [`MF_CRDSA`](@ref) struct with no arguments
@@ -82,6 +83,18 @@ struct MF_CRDSA{N, F} <: FixedRepSlottedRAScheme{N}
     end
 end
 MF_CRDSA{N}() where N = MF_CRDSA{N}(N, EachTimeSlot{N}())
+
+@kwdef struct RA4Step <: FixedRepSlottedRAScheme{1} 
+    "Number of time occasions (slots) in each RA frame allocated to the msg1 random access."
+    msg1_occasions::Int
+    "Number of time occasions (slots) in each RA frame allocated to the msg3 transmission."
+    msg3_occasions::Int
+    "Number of frequency slots (i.e. sub-carriers) available in each time slot, it is assumed that the number of subcarriers is the same for both msg1 and msg3 transmissions."
+    freq_slots::Int
+    "Flag to specify whether to limit the number of maximum decoded packet to the number of slots associated to msg3 transmission (which is equivalent to `msg3_occasions * freq_slots`)."
+    limit_packets::Bool
+end
+RA4Step(msg1_occasions::Number, msg3_occasions::Number; freq_slots::Number = 48, limit_packets::Bool = true) = RA4Step(Int(msg1_occasions), Int(msg3_occasions), Int(freq_slots), limit_packets)
 
 """
     @enum ReplicaPowerStrategy SamePower IndependentPower
@@ -297,3 +310,5 @@ See the `plr_fit_notebook.jl` notebook in the package root folder for example of
     M::Int
 end
 (p::PLR_Fit)(ebno) = p.plr_func(ebno)
+
+struct CollisionModel end
