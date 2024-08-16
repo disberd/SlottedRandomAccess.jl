@@ -26,6 +26,14 @@ This RA scheme was introduced in [this 2007 IEEE paper](https://doi.org/10.1109/
 See also: [`MF_CRDSA`](@ref)
 """
 struct CRDSA{N} <: FixedRepSlottedRAScheme{N} end
+"""
+    const SlottedALOHA = CRDSA{1}
+This is just an alias to represent SlottedALOHA with the CRDSA type, you create a slotted aloha scheme with the following code:
+```julia-repl
+julia> scheme = SlottedALOHA()
+```
+"""
+const SlottedALOHA = CRDSA{1}
 
 """
     This strcut, when called, will simply return the tuple of Int numbers from `1` to `N`. It is used as the default _Callable_ when initializing the [`MF_CRDSA`](@ref) struct with no arguments
@@ -82,6 +90,39 @@ struct MF_CRDSA{N, F} <: FixedRepSlottedRAScheme{N}
     end
 end
 MF_CRDSA{N}() where N = MF_CRDSA{N}(N, EachTimeSlot{N}())
+
+"""
+$TYPEDEF
+Type representing the 4-step RA procedure, where Slotted ALOHA is used during the RA contention period (msg1) and succesfully decoded msg1 packets are used to allocate orthogonal resources for the msg3 transmission of the actual data.
+
+!!! note
+    This type of RA scheme will only simulate the packet decoding process for the msg1 and optionally limit the maximum number of succesfull packets per frame to be the number of slots available for msg3 transmission.
+
+# Fields
+$TYPEDFIELDS
+
+# Constructors
+    RA4Step(msg1_occasions, msg3_occasions; freq_slots = 48, limit_packets = true)
+
+## Example
+The code below will generate a 4-step RA scheme with 5 time occasions for msg1 every 2 time occasions for msg3, while assuming 20 frequency slots (i.e. subcarriers) for each time slots and while limiting the maximum number of decoded packets in each frame to the actual number of msg3 slots (which is `2 * 20`).
+```julia-repl
+julia> scheme = RA4Step(5, 2; freq_slots = 20, limit_packets = true)
+```
+
+See also: [`CRDSA`](@ref), [`MF-CRDSA`](@ref)
+"""
+@kwdef struct RA4Step <: FixedRepSlottedRAScheme{1} 
+    "Number of time occasions (slots) in each RA frame allocated to the msg1 random access."
+    msg1_occasions::Int
+    "Number of time occasions (slots) in each RA frame allocated to the msg3 transmission."
+    msg3_occasions::Int
+    "Number of frequency slots (i.e. sub-carriers) available in each time slot, it is assumed that the number of subcarriers is the same for both msg1 and msg3 transmissions."
+    freq_slots::Int
+    "Flag to specify whether to limit the number of maximum decoded packet to the number of slots associated to msg3 transmission (which is equivalent to `msg3_occasions * freq_slots`)."
+    limit_packets::Bool
+end
+RA4Step(msg1_occasions::Number, msg3_occasions::Number; freq_slots::Number = 48, limit_packets::Bool = true) = RA4Step(Int(msg1_occasions), Int(msg3_occasions), Int(freq_slots), limit_packets)
 
 """
     @enum ReplicaPowerStrategy SamePower IndependentPower
@@ -151,7 +192,7 @@ $TYPEDFIELDS
     "The number of RA frames to simulate for each Load point"
     max_simulated_frames::Int = 10^5
     "The number of slots in each RA frame"
-    nslots::Int
+    nslots::Int = 0
     "The function used to compute the PLR for a given packet as a function of its equivalent Eb/N0"
     plr_func::F = default_plr_function(coderate)
     "The variance of the noise, assumed as N0 in the simulation"
@@ -162,18 +203,25 @@ $TYPEDFIELDS
     max_errored_frames::Int = 10^4
     "Overhead assumed for the framing and or guard bands/times in the simulation. It must be a positive number representing the overhead compared to an ideal case where all resources are fully used for sending data (e.g. no pilots, no roll-off, no guard bands, no guard times). An overhead value of `1.0` implies that the spectral efficiency is half of the ideal case."
     overhead::Float64 = 0.0
-end
-# We do a default positional constructor which promote types
-function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real, overhead::Real)
-    coderate = Float64(coderate)
-    M = Int(M)
-    max_simulated_frames = Int(max_simulated_frames)
-    nslots = Int(nslots)
-    noise_variance = Float64(noise_variance)
-    SIC_iterations = Int(SIC_iterations)
-    max_errored_frames = Int(max_errored_frames)
-    overhead = Float64(overhead)
-    return PLR_SimulationParameters(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames, overhead)
+    # We do a default positional constructor which promote types
+    function PLR_SimulationParameters(scheme, poisson::Bool, coderate::Real, M::Real, power_dist, power_strategy::ReplicaPowerStrategy, max_simulated_frames::Real, nslots::Real, plr_func, noise_variance::Real, SIC_iterations::Real, max_errored_frames::Real, overhead::Real)
+        RA = typeof(scheme)
+        F = typeof(plr_func)
+        coderate = Float64(coderate)
+        M = Int(M)
+        max_simulated_frames = Int(max_simulated_frames)
+        nslots = Int(nslots)
+        if RA <: RA4Step
+            @assert nslots === 0 "You can't set the `nslots` directly for the RA4Step scheme, do not assign this value in the constructor (or explicitly assign 0 to it)"
+        else
+            @assert nslots !== 0 "You need to set the number of slots (> 0) while constructing the `PLR_SimulationParameters` instance"
+        end
+        noise_variance = Float64(noise_variance)
+        SIC_iterations = Int(SIC_iterations)
+        max_errored_frames = Int(max_errored_frames)
+        overhead = Float64(overhead)
+        return new{RA,F}(scheme, poisson, coderate, M, power_dist, power_strategy, max_simulated_frames, nslots, plr_func, noise_variance, SIC_iterations, max_errored_frames, overhead)
+    end
 end
 
 """
@@ -297,3 +345,11 @@ See the `plr_fit_notebook.jl` notebook in the package root folder for example of
     M::Int
 end
 (p::PLR_Fit)(ebno) = p.plr_func(ebno)
+
+"""
+    CollisionModel()
+Type to be used as `plr_func` when instantiating [`PLR_SimulationParameters`](@ref) or [`PLR_Simulation`](@ref), which will mimic a collision model for the PHY abstraction.
+!!! note
+    An instance of `CollisionModel` is not callable like all other `plr_func` values, the collision model is just implemented directly inside the inner code performing the simulation.
+"""
+struct CollisionModel end

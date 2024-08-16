@@ -198,6 +198,20 @@ begin
 	lin2db(x) = 10log10(x)
 end
 
+# ╔═╡ 54976715-765a-4f6f-b578-6d194581ed95
+.57 * 2 |> lin2db
+
+# ╔═╡ a0239e50-984b-483b-97b4-c3c9f3a28a2f
+let
+	esno = 1/db2lin(4.8) + 1 |> inv |> lin2db
+	r = 0.43
+	M = 4
+	esno -  lin2db(r * log2(M))
+end
+
+# ╔═╡ 2072e32a-5bfb-44c5-8a3a-f29fbf316641
+lin2db(6/7)
+
 # ╔═╡ ad3cbb4b-64c7-430a-b402-bb15efa474d6
 function fit_plr(curve_data, plr_exponent = 2)
 	(; N, M, K, ebno, plr) = curve_data
@@ -1120,11 +1134,14 @@ version = "17.4.0+2"
 # ╠═ae41ef1d-2359-4fbe-b30d-1bbbed7a9ddd
 # ╟─03ead270-1ea5-42b0-8155-d4d57be24354
 # ╟─8ff930d7-c45b-4ef7-9b85-0eac907964d8
-# ╟─d7d7f556-4d3c-4795-992b-9c7be52d0a48
+# ╠═d7d7f556-4d3c-4795-992b-9c7be52d0a48
+# ╠═54976715-765a-4f6f-b578-6d194581ed95
+# ╠═a0239e50-984b-483b-97b4-c3c9f3a28a2f
 # ╟─24b3ebbf-cb52-406a-b5c4-d450c531804c
 # ╟─9752875c-2ba8-4b18-a548-fddbaa776501
 # ╠═831d7ddc-e784-47a6-9853-848c682a380d
 # ╟─4143ee93-5113-4800-86dd-ff634ef25771
+# ╠═2072e32a-5bfb-44c5-8a3a-f29fbf316641
 # ╠═4faf8ec3-d2c6-4c45-8616-890706f58e9a
 # ╠═9a347761-bd5e-4b9d-b19b-f08aed644b26
 # ╠═e428567e-2479-4150-b7f7-c0239e4eba8f

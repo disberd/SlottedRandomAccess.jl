@@ -32,6 +32,17 @@
     p = sim.params
     @test p.nslots isa Int
 
+    # Test throwing if no nslots was provided
+    @test_throws "You need to set the number of slots (> 0)" PLR_Simulation(1:2; scheme, power_dist)
+
+    # Test CollisionModel
+    sim_1 = PLR_Simulation([.1]; scheme, power_dist, coderate = 1/2, nslots, noise_variance = 10^5)
+    simulate!(sim_1)
+    @test extract_plr(sim_1.results[1]) ≈ 1
+    sim_2 = PLR_Simulation([.1]; scheme, power_dist, coderate = 1/2, nslots, noise_variance = 10^5, plr_func = CollisionModel())
+    simulate!(sim_2)
+    @test extract_plr(sim_2.results[1]) < .1
+
     user = UserRealization(scheme, nslots; power_dist, power_strategy=SamePower)
     @test user.nslots isa Int
     @test user.slots_powers isa NTuple{<:Any, @NamedTuple{slot::Int, power::Float64}}
@@ -77,4 +88,31 @@ end
         plr_scaled = extract_plr(sim_scaled.results[i])
         @test isapprox(plr_overhead, plr_scaled; rtol = .1)
     end
+end
+
+@testitem "4-step RA" begin
+    using SlottedRandomAccess
+    using Test
+    using Distributions
+
+    power_dist = Dirac(5)
+
+
+    # Test limit packets, we also use non-poisson traffic for deterministic packets numbers and few simulated frames to reduce collision probability
+    # We simulate a very artificial scheme with 10000 msg1 slots and only 2 msg3 slots to somehow ensure we don't get collisions
+    scheme = RA4Step(10000, 2; freq_slots = 1, limit_packets = false)
+    sim_1 = PLR_Simulation([2]; scheme, power_dist, coderate=1/2, plr_func = CollisionModel(), poisson = false, max_simulated_frames = 100)
+    simulate!(sim_1)
+    res_1 = sim_1.results[1].plr
+    @test res_1.total_decoded == 400 # We have 2 slots and 2 packets per slot so 400 packets decoded over 100 frames
+    
+    # Now test that with limits we don't transmit more than 2 packets per frame
+    scheme = RA4Step(10000, 2; freq_slots = 1, limit_packets = true)
+    sim_2 = PLR_Simulation([2]; scheme, power_dist, coderate=1/2, plr_func = CollisionModel(), poisson = false, max_simulated_frames = 100)
+    simulate!(sim_2)
+    res_2 = sim_2.results[1].plr
+    @test res_2.total_decoded == 200 # We have 2 slots and 2 packets per slot, but only 200 packets decoded over 100 frames as we are limiting to 2 packets per frame
+
+    # Test that giving slots throws
+    @test_throws "You can't set the `nslots` directly for the RA4Step scheme" PLR_SimulationParameters(;scheme, power_dist, nslots = 100)
 end

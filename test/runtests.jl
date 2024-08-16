@@ -22,5 +22,6 @@ end
 
 include("basics.jl")
 include("readme_example.jl")
+include("plot_tests.jl")
 
 @run_package_tests verbose=true
